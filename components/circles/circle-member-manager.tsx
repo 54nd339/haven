@@ -57,7 +57,7 @@ export function CircleMemberManager({ circleId }: CircleMemberManagerProps) {
   });
 
   const { mutate: add, isPending: isAdding } = useMutation({
-    mutationFn: (userId: string) => addCircleMember(circleId, userId),
+    mutationFn: (userId: string) => addCircleMember({ circleId, userId }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['circle-members', circleId] });
       queryClient.invalidateQueries({ queryKey: ['circles'] });

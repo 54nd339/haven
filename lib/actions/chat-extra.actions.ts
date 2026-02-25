@@ -1,12 +1,12 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { auth } from '@clerk/nextjs/server';
 
 import { db } from '@/lib/db';
 import { getUserByClerkId } from '@/lib/db/queries/user.queries';
-import { conversations } from '@/lib/db/schema';
+import { conversationMembers, conversations, messageEditHistory, messages } from '@/lib/db/schema';
 
 async function getAuthenticatedUser() {
   const { userId: clerkId } = await auth();
@@ -18,8 +18,24 @@ async function getAuthenticatedUser() {
   return user;
 }
 
+async function assertConversationMember(conversationId: string, userId: string): Promise<void> {
+  const [member] = await db
+    .select({ id: conversationMembers.id })
+    .from(conversationMembers)
+    .where(
+      and(
+        eq(conversationMembers.conversationId, conversationId),
+        eq(conversationMembers.userId, userId),
+      ),
+    )
+    .limit(1);
+
+  if (!member) throw new Error('Not a member of this conversation');
+}
+
 export async function toggleMuteConversation(conversationId: string) {
-  await getAuthenticatedUser();
+  const user = await getAuthenticatedUser();
+  await assertConversationMember(conversationId, user.id);
 
   const [conv] = await db
     .select({ isMuted: conversations.isMuted })
@@ -39,7 +55,8 @@ export async function toggleMuteConversation(conversationId: string) {
 }
 
 export async function toggleArchiveConversation(conversationId: string) {
-  await getAuthenticatedUser();
+  const user = await getAuthenticatedUser();
+  await assertConversationMember(conversationId, user.id);
 
   const [conv] = await db
     .select({ isArchived: conversations.isArchived })
@@ -59,7 +76,8 @@ export async function toggleArchiveConversation(conversationId: string) {
 }
 
 export async function togglePinConversation(conversationId: string) {
-  await getAuthenticatedUser();
+  const user = await getAuthenticatedUser();
+  await assertConversationMember(conversationId, user.id);
 
   const [conv] = await db
     .select({ isPinned: conversations.isPinned })
@@ -79,9 +97,16 @@ export async function togglePinConversation(conversationId: string) {
 }
 
 export async function deleteMessageForEveryone(messageId: string) {
-  await getAuthenticatedUser();
+  const user = await getAuthenticatedUser();
 
-  const { messages } = await import('@/lib/db/schema');
+  const [msg] = await db
+    .select({ senderId: messages.senderId })
+    .from(messages)
+    .where(eq(messages.id, messageId))
+    .limit(1);
+
+  if (!msg) throw new Error('Message not found');
+  if (msg.senderId !== user.id) throw new Error('Not authorized');
 
   await db
     .update(messages)
@@ -92,17 +117,16 @@ export async function deleteMessageForEveryone(messageId: string) {
 }
 
 export async function editMessage(messageId: string, newContent: string) {
-  await getAuthenticatedUser();
-
-  const { messageEditHistory, messages } = await import('@/lib/db/schema');
+  const user = await getAuthenticatedUser();
 
   const [msg] = await db
-    .select({ content: messages.content })
+    .select({ content: messages.content, senderId: messages.senderId })
     .from(messages)
     .where(eq(messages.id, messageId))
     .limit(1);
 
   if (!msg) throw new Error('Message not found');
+  if (msg.senderId !== user.id) throw new Error('Not authorized');
 
   if (msg.content) {
     await db.insert(messageEditHistory).values({

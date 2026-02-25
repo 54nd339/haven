@@ -1,14 +1,15 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Image from 'next/image';
 import { Loader2 } from 'lucide-react';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { ChatMessage } from '@/lib/db/queries/chat.queries';
 import { cn, formatRelativeTime } from '@/lib/utils';
+import { usePusherChannel } from '@/hooks/use-pusher-channel';
 
 interface MessagesResponse {
   messages: ChatMessage[];
@@ -48,8 +49,34 @@ function MessageSkeleton() {
 }
 
 export function MessageList({ conversationId, currentUserId }: MessageListProps) {
+  const queryClient = useQueryClient();
   const bottomRef = useRef<HTMLDivElement>(null);
   const loadMoreRef = useRef<HTMLDivElement>(null);
+
+  const handleNewMessage = useCallback(
+    (data: unknown) => {
+      const msg = data as ChatMessage;
+      if (msg.sender?.id === currentUserId) return;
+      queryClient.setQueryData<{ pages: MessagesResponse[]; pageParams: unknown[] }>(
+        ['messages', conversationId],
+        (old) => {
+          if (!old) return old;
+          const firstPage = old.pages[0];
+          if (!firstPage) return old;
+          return {
+            ...old,
+            pages: [
+              { ...firstPage, messages: [...firstPage.messages, msg] },
+              ...old.pages.slice(1),
+            ],
+          };
+        },
+      );
+    },
+    [conversationId, currentUserId, queryClient],
+  );
+
+  usePusherChannel(`private-conversation-${conversationId}`, 'new-message', handleNewMessage);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['messages', conversationId],

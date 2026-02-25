@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { ImagePlay, Loader2, Send } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -8,7 +9,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { sendMessage } from '@/lib/actions/chat.actions';
 
-import { GifPicker } from './gif-picker';
+const GifPicker = dynamic(() => import('./gif-picker').then((m) => m.GifPicker), {
+  ssr: false,
+  loading: () => <div className="bg-muted h-40 animate-pulse rounded-lg" />,
+});
 
 interface MessageInputProps {
   conversationId: string;

@@ -120,6 +120,7 @@ export function Sidebar() {
               variant="ghost"
               size="sm"
               onClick={zenToggle}
+              aria-label={zenMode ? 'Turn off Zen Mode' : 'Toggle Zen Mode'}
               className={cn(
                 'flex w-full items-center justify-start gap-3 px-3',
                 zenMode && 'text-primary',
@@ -140,6 +141,7 @@ export function Sidebar() {
               variant="ghost"
               size="sm"
               onClick={incognitoToggle}
+              aria-label={incognito ? 'Turn off Incognito mode' : 'Toggle Incognito mode'}
               className={cn(
                 'flex w-full items-center justify-start gap-3 px-3',
                 incognito && 'text-primary',

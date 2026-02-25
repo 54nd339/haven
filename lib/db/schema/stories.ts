@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
+import { circles } from './social';
 import { users } from './users';
 
 export const storyHighlights = pgTable('story_highlights', {
@@ -29,7 +30,7 @@ export const stories = pgTable('stories', {
   bgColor: text('bg_color'),
   fontStyle: text('font_style'),
   visibility: text('visibility').notNull().default('public'),
-  circleId: uuid('circle_id'),
+  circleId: uuid('circle_id').references(() => circles.id, { onDelete: 'set null' }),
   highlightId: uuid('highlight_id').references(() => storyHighlights.id),
   expiresAt: timestamp('expires_at').notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),

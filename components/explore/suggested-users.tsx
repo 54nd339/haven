@@ -71,7 +71,11 @@ export function SuggestedUsers() {
                 <p className="text-muted-foreground mt-0.5 line-clamp-1 text-xs">{user.bio}</p>
               )}
             </div>
-            <FollowButton userId={user.id} initialStatus="none" />
+            <FollowButton
+              userId={user.id}
+              initialStatus="none"
+              queryKeyToUpdate={['suggested-users']}
+            />
           </div>
         ))}
       </div>

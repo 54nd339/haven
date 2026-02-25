@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, isNull, lt, sql } from 'drizzle-orm';
+import { and, inArray, isNull, lt } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { stories, storyReactions, storyViews } from '@/lib/db/schema';
@@ -21,9 +21,9 @@ export async function GET(req: Request) {
 
   const ids = expired.map((s) => s.id);
 
-  await db.delete(storyViews).where(sql`${storyViews.storyId} = ANY(${ids})`);
-  await db.delete(storyReactions).where(sql`${storyReactions.storyId} = ANY(${ids})`);
-  await db.delete(stories).where(sql`${stories.id} = ANY(${ids})`);
+  await db.delete(storyViews).where(inArray(storyViews.storyId, ids));
+  await db.delete(storyReactions).where(inArray(storyReactions.storyId, ids));
+  await db.delete(stories).where(inArray(stories.id, ids));
 
   return NextResponse.json({ cleaned: ids.length });
 }

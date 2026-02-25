@@ -46,7 +46,7 @@ export function CircleGrid() {
   });
 
   const { mutate: create, isPending: isCreating } = useMutation({
-    mutationFn: () => createCircle(name, emoji || undefined),
+    mutationFn: () => createCircle({ name, emoji: emoji || undefined }),
     onSuccess: () => {
       setOpen(false);
       setName('');

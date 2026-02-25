@@ -68,6 +68,8 @@ export interface FeedPost {
   userReaction: string | null;
   commentCount: number;
   shareCount: number;
+  /** Client-side optimistic only; not fetched from DB */
+  isBookmarked?: boolean;
 }
 
 export async function getFeedPosts(

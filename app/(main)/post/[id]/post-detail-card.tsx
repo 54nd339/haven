@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Bookmark, Edit3, Eye, MessageCircle, MoreHorizontal, Share2, Trash2 } from 'lucide-react';
@@ -22,6 +23,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Separator } from '@/components/ui/separator';
 import { bookmarkPost, deletePost } from '@/lib/actions/post.actions';
+import { cn } from '@/lib/utils';
 
 interface PostDetailCardProps {
   post: {
@@ -76,13 +78,27 @@ interface PostDetailCardProps {
 export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
+  const [optimisticBookmarked, setOptimisticBookmarked] = useState<boolean | null>(null);
 
   const isAuthor = post.author.id === currentUserId;
+  const isBookmarked = optimisticBookmarked ?? false;
 
   const { mutate: handleBookmark } = useMutation({
     mutationFn: () => bookmarkPost(post.id),
+    onMutate: () => {
+      setOptimisticBookmarked((prev) => !(prev ?? false));
+      return { previousBookmarked: optimisticBookmarked };
+    },
     onSuccess: (result) => {
+      setOptimisticBookmarked(result.bookmarked);
       toast.success(result.bookmarked ? 'Saved to collection' : 'Removed from collection');
+    },
+    onError: (_err, _postId, context) => {
+      setOptimisticBookmarked(context?.previousBookmarked ?? null);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
     },
   });
 
@@ -228,10 +244,10 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
         <Button
           variant="ghost"
           size="icon-sm"
-          className="text-muted-foreground"
+          className={cn('text-muted-foreground', isBookmarked && 'text-primary')}
           onClick={() => handleBookmark()}
         >
-          <Bookmark className="size-4" />
+          <Bookmark className={cn('size-4', isBookmarked && 'fill-current')} />
         </Button>
       </div>
     </article>

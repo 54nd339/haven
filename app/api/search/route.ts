@@ -3,12 +3,17 @@ import { auth } from '@clerk/nextjs/server';
 
 import { searchPosts, searchUsers } from '@/lib/db/queries/search.queries';
 import { getUserByClerkId } from '@/lib/db/queries/user.queries';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
   const { userId: clerkId } = await auth();
   if (!clerkId) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const rl = await checkRateLimit(`search:${clerkId}`);
+  if (rl.limited)
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: rl.headers });
 
   const user = await getUserByClerkId(clerkId);
   if (!user) {

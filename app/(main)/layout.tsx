@@ -1,6 +1,6 @@
 import { auth } from '@clerk/nextjs/server';
 
-import { CommandPalette } from '@/components/shared/command-palette';
+import { LazyCommandPalette } from '@/components/shared/lazy-command-palette';
 import { MobileNav } from '@/components/shared/mobile-nav';
 import { Navbar } from '@/components/shared/navbar';
 import { Sidebar } from '@/components/shared/sidebar';
@@ -19,11 +19,13 @@ export default async function MainLayout({ children }: { children: React.ReactNo
 
       <div className="flex flex-1 flex-col">
         <Navbar />
-        <main className="flex-1 pb-16 md:pb-0">{children}</main>
+        <main id="main-content" className="flex-1 pb-16 md:pb-0">
+          {children}
+        </main>
         <MobileNav />
       </div>
 
-      <CommandPalette />
+      <LazyCommandPalette />
       <WellbeingTracker
         dailyLimitMinutes={user?.dailyLimitMinutes ?? null}
         breakReminderMinutes={user?.breakReminderMinutes ?? null}

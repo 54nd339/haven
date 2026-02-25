@@ -7,6 +7,7 @@ import { auth } from '@clerk/nextjs/server';
 import { db } from '@/lib/db';
 import { getUserByClerkId } from '@/lib/db/queries/user.queries';
 import { conversationMembers, conversations, messages } from '@/lib/db/schema';
+import { pusherServer } from '@/lib/pusher/server';
 
 async function getAuthenticatedUser() {
   const { userId: clerkId } = await auth();
@@ -109,9 +110,12 @@ export async function sendMessage(input: {
     .set({ updatedAt: new Date() })
     .where(eq(conversations.id, input.conversationId));
 
-  return {
+  const messagePayload = {
     id: message!.id,
     createdAt: message!.createdAt,
+    content: input.content ?? null,
+    type: input.type ?? 'text',
+    mediaUrl: input.mediaUrl ?? null,
     sender: {
       id: user.id,
       username: user.username,
@@ -119,6 +123,14 @@ export async function sendMessage(input: {
       avatarUrl: user.avatarUrl,
     },
   };
+
+  await pusherServer.trigger(
+    `private-conversation-${input.conversationId}`,
+    'new-message',
+    messagePayload,
+  );
+
+  return messagePayload;
 }
 
 export async function markConversationRead(conversationId: string) {

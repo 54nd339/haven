@@ -42,6 +42,7 @@ import {
   MAX_POST_LENGTH,
   POST_VISIBILITY,
 } from '@/lib/constants';
+import { useUploadThing } from '@/lib/uploadthing-client';
 import { cn } from '@/lib/utils';
 import type { PostVisibility } from '@/types';
 
@@ -92,6 +93,7 @@ export function PostComposer({ className }: PostComposerProps) {
   const [poll, setPoll] = useState<PollData | null>(null);
   const [contentWarning, setContentWarning] = useState('');
   const [showContentWarning, setShowContentWarning] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [collabUser, setCollabUser] = useState<{
     id: string;
     username: string;
@@ -105,9 +107,11 @@ export function PostComposer({ className }: PostComposerProps) {
     enabled: visibility === 'circle',
   });
 
+  const { startUpload } = useUploadThing('postImage');
+
   const charCount = content.length;
   const isOverLimit = charCount > MAX_POST_LENGTH;
-  const canPost = content.trim().length > 0 && !isOverLimit && !isPending;
+  const canPost = content.trim().length > 0 && !isOverLimit && !isPending && !isUploading;
 
   const { mutate: submitPost } = useMutation({
     mutationFn: (data: Parameters<typeof createPost>[0]) => createPost(data),
@@ -144,19 +148,35 @@ export function PostComposer({ className }: PostComposerProps) {
     });
   }
 
-  function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleImageSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     const remaining = MAX_IMAGES_PER_POST - images.length;
     const newFiles = files.slice(0, remaining);
+    if (newFiles.length === 0) return;
 
-    const newImages: ImageData[] = newFiles.map((file) => ({
-      url: URL.createObjectURL(file),
+    const previews: ImageData[] = newFiles.map((file) => ({
+      url: '',
       file,
       preview: URL.createObjectURL(file),
     }));
-
-    setImages((prev) => [...prev, ...newImages]);
+    setImages((prev) => [...prev, ...previews]);
     if (fileInputRef.current) fileInputRef.current.value = '';
+
+    setIsUploading(true);
+    try {
+      const uploaded = await startUpload(newFiles);
+      if (uploaded) {
+        setImages((prev) =>
+          prev.map((img) => {
+            if (!img.file) return img;
+            const match = uploaded.find((u) => u.name === img.file!.name);
+            return match ? { ...img, url: match.ufsUrl } : img;
+          }),
+        );
+      }
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   function removeImage(index: number) {
