@@ -107,6 +107,9 @@ export function PostCard({ post }: PostCardProps) {
       toast.success('Post deleted');
       queryClient.invalidateQueries({ queryKey: ['feed'] });
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   const { mutate: handlePin } = useMutation({
@@ -120,6 +123,9 @@ export function PostCard({ post }: PostCardProps) {
 
   const { mutate: trackShare } = useMutation({
     mutationFn: () => sharePost(post.id),
+    onError: () => {
+      /* Silent: background share tracking, no toast */
+    },
   });
 
   return (

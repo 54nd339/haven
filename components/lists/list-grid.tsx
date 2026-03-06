@@ -48,6 +48,9 @@ export function ListGrid() {
       queryClient.invalidateQueries({ queryKey: ['user-lists'] });
       toast.success('List created');
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   const { mutate: remove } = useMutation({
@@ -55,6 +58,9 @@ export function ListGrid() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['user-lists'] });
       toast.success('List deleted');
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 

@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { notifications, users } from '@/lib/db/schema';
@@ -64,7 +64,7 @@ export async function getNotifications(
         avatarUrl: users.avatarUrl,
       })
       .from(users)
-      .where(sql`${users.id} = ANY(${actorIds})`);
+      .where(inArray(users.id, actorIds));
 
     actorMap = new Map(actors.map((a) => [a.id, a]));
   }
@@ -93,10 +93,7 @@ export async function markNotificationsRead(userId: string, notificationIds?: st
       .update(notifications)
       .set({ read: true })
       .where(
-        and(
-          eq(notifications.recipientId, userId),
-          sql`${notifications.id} = ANY(${notificationIds})`,
-        ),
+        and(eq(notifications.recipientId, userId), inArray(notifications.id, notificationIds)),
       );
   } else {
     await db.update(notifications).set({ read: true }).where(eq(notifications.recipientId, userId));

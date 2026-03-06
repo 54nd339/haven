@@ -1,4 +1,4 @@
-import { and, eq, gt, sql } from 'drizzle-orm';
+import { and, eq, gt, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { stories, storyViews, users } from '@/lib/db/schema';
@@ -52,7 +52,7 @@ export async function getStoryRings(currentUserId: string): Promise<StoryRing[]>
         avatarUrl: users.avatarUrl,
       })
       .from(users)
-      .where(sql`${users.id} = ANY(${authorIds})`),
+      .where(inArray(users.id, authorIds)),
     db
       .select({ storyId: storyViews.storyId })
       .from(storyViews)
@@ -60,7 +60,7 @@ export async function getStoryRings(currentUserId: string): Promise<StoryRing[]>
       .where(
         and(
           eq(storyViews.viewerId, currentUserId),
-          sql`${stories.authorId} = ANY(${authorIds})`,
+          inArray(stories.authorId, authorIds),
           gt(stories.expiresAt, new Date()),
         ),
       ),
@@ -144,14 +144,12 @@ export async function getUserStories(
         count: sql<number>`count(*)::int`,
       })
       .from(storyViews)
-      .where(sql`${storyViews.storyId} = ANY(${storyIds})`)
+      .where(inArray(storyViews.storyId, storyIds))
       .groupBy(storyViews.storyId),
     db
       .select({ storyId: storyViews.storyId })
       .from(storyViews)
-      .where(
-        and(sql`${storyViews.storyId} = ANY(${storyIds})`, eq(storyViews.viewerId, currentUserId)),
-      ),
+      .where(and(inArray(storyViews.storyId, storyIds), eq(storyViews.viewerId, currentUserId))),
   ]);
 
   const viewCountMap = new Map(viewCounts.map((v) => [v.storyId, v.count]));

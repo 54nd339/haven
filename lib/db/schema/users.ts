@@ -22,6 +22,8 @@ export const users = pgTable('users', {
   quietHoursEnd: text('quiet_hours_end'),
   dailyLimitMinutes: integer('daily_limit_minutes'),
   breakReminderMinutes: integer('break_reminder_minutes'),
+  showReplies: boolean('show_replies').default(true).notNull(),
+  showReactions: boolean('show_reactions').default(true).notNull(),
   onboardingComplete: boolean('onboarding_complete').default(false).notNull(),
   createdAt: timestamp('created_at').defaultNow().notNull(),
   updatedAt: timestamp('updated_at')

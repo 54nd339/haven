@@ -107,6 +107,9 @@ export function VaultView() {
       queryClient.invalidateQueries({ queryKey: ['vault'] });
       toast.success('Removed from vault');
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   if (isLoading || isDecrypting) {

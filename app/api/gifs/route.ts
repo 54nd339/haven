@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-const TENOR_API_KEY = process.env.TENOR_API_KEY;
-const TENOR_BASE = 'https://tenor.googleapis.com/v2';
+const KLIPY_API_KEY = process.env.KLIPY_API_KEY;
+const KLIPY_BASE = 'https://api.klipy.com/v2';
 
 export async function GET(req: NextRequest) {
-  if (!TENOR_API_KEY) {
+  if (!KLIPY_API_KEY) {
     return NextResponse.json({ results: [] }, { status: 503 });
   }
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const endpoint = q ? 'search' : 'featured';
 
   const params = new URLSearchParams({
-    key: TENOR_API_KEY,
+    key: KLIPY_API_KEY,
     client_key: 'haven',
     media_filter: 'gif,tinygif',
     limit: '20',
@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   if (q) params.set('q', q);
 
-  const res = await fetch(`${TENOR_BASE}/${endpoint}?${params.toString()}`);
+  const res = await fetch(`${KLIPY_BASE}/${endpoint}?${params.toString()}`);
   if (!res.ok) return NextResponse.json({ results: [] });
 
   const data = await res.json();

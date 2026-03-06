@@ -67,6 +67,9 @@ export function DraftList() {
       queryClient.invalidateQueries({ queryKey: ['drafts'] });
       toast.success('Draft deleted');
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   if (isLoading) {
@@ -98,7 +101,9 @@ export function DraftList() {
           <div className="flex flex-col items-center gap-3 py-16 text-center">
             <FileEdit className="text-muted-foreground/40 size-10" />
             <h3 className="text-sm font-semibold">No drafts</h3>
-            <p className="text-muted-foreground text-xs">Unfinished posts will appear here</p>
+            <p className="text-muted-foreground text-xs">
+              Start writing a post and save it as a draft
+            </p>
           </div>
         ) : (
           <div className="-mx-4 divide-y">

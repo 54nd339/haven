@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import Image from 'next/image';
 import {
   AlertTriangle,
@@ -14,10 +14,12 @@ import {
   Users,
   X,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useUser } from '@clerk/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { CollabInvite } from '@/components/feed/collab-invite';
+import { LinkPreview } from '@/components/feed/link-preview';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import {
@@ -42,7 +44,7 @@ import {
   MAX_POST_LENGTH,
   POST_VISIBILITY,
 } from '@/lib/constants';
-import { useUploadThing } from '@/lib/uploadthing-client';
+import { useUploadThing } from '@/lib/uploadthing/client';
 import { cn } from '@/lib/utils';
 import { useCircles } from '@/hooks/use-circles';
 import type { PostVisibility } from '@/types';
@@ -89,8 +91,43 @@ export function PostComposer({ className }: PostComposerProps) {
     displayName: string | null;
     avatarUrl: string | null;
   } | null>(null);
+  const [ogData, setOgData] = useState<{
+    url: string;
+    title: string | null;
+    description: string | null;
+    imageUrl: string | null;
+    siteName: string | null;
+  } | null>(null);
+  const [ogDismissed, setOgDismissed] = useState(false);
+  const lastOgUrl = useRef<string | null>(null);
 
   const { data: circles } = useCircles(visibility === 'circle');
+
+  const extractUrl = useCallback((text: string): string | null => {
+    const match = text.match(/https?:\/\/[^\s)]+/);
+    return match?.[0] ?? null;
+  }, []);
+
+  useEffect(() => {
+    const url = extractUrl(content);
+    if (!url || url === lastOgUrl.current) return;
+    if (ogDismissed && url === ogData?.url) return;
+
+    lastOgUrl.current = url;
+    const controller = new AbortController();
+
+    fetch(`/api/og?url=${encodeURIComponent(url)}`, { signal: controller.signal })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) {
+          setOgData(data);
+          setOgDismissed(false);
+        }
+      })
+      .catch(() => {});
+
+    return () => controller.abort();
+  }, [content, extractUrl, ogDismissed, ogData?.url]);
 
   const { startUpload } = useUploadThing('postImage');
 
@@ -107,7 +144,14 @@ export function PostComposer({ className }: PostComposerProps) {
       setContentWarning('');
       setShowContentWarning(false);
       setCollabUser(null);
+      setOgData(null);
+      setOgDismissed(false);
+      lastOgUrl.current = null;
       queryClient.invalidateQueries({ queryKey: ['feed'] });
+      toast.success('Post published!');
+    },
+    onError: (error) => {
+      toast.error(error instanceof Error ? error.message : 'Failed to create post');
     },
   });
 
@@ -129,6 +173,7 @@ export function PostComposer({ className }: PostComposerProps) {
             }
           : undefined,
         contentWarning: showContentWarning && contentWarning ? contentWarning : undefined,
+        linkPreview: ogData && !ogDismissed ? ogData : undefined,
       });
     });
   }
@@ -292,6 +337,20 @@ export function PostComposer({ className }: PostComposerProps) {
                   Add option
                 </Button>
               )}
+            </div>
+          )}
+
+          {ogData && !ogDismissed && (
+            <div className="relative">
+              <LinkPreview {...ogData} />
+              <Button
+                variant="ghost"
+                size="icon-xs"
+                className="absolute top-1 right-1"
+                onClick={() => setOgDismissed(true)}
+              >
+                <X className="size-3" />
+              </Button>
             </div>
           )}
 

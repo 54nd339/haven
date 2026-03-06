@@ -23,6 +23,14 @@ export const uploadRouter = {
   chatImage: f({ image: { maxFileSize: '16MB', maxFileCount: 1 } })
     .middleware(authMiddleware)
     .onUploadComplete(async ({ file }) => ({ url: file.ufsUrl })),
+
+  avatarImage: f({ image: { maxFileSize: '4MB', maxFileCount: 1 } })
+    .middleware(authMiddleware)
+    .onUploadComplete(async ({ file }) => ({ url: file.ufsUrl })),
+
+  bannerImage: f({ image: { maxFileSize: '8MB', maxFileCount: 1 } })
+    .middleware(authMiddleware)
+    .onUploadComplete(async ({ file }) => ({ url: file.ufsUrl })),
 } satisfies FileRouter;
 
 export type AppFileRouter = typeof uploadRouter;

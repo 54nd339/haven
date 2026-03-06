@@ -51,8 +51,9 @@ export function ShareSheet({ url, title, embedCode, onShared, children }: ShareS
     try {
       await navigator.share({ title: title ?? 'Check this out on Haven', url });
       onShared?.();
-    } catch {
-      /* user cancelled */
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      toast.error('Failed to share');
     }
   }
 

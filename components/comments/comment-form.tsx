@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Loader2, Send } from 'lucide-react';
+import { toast } from 'sonner';
 import { useUser } from '@clerk/nextjs';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -48,6 +49,9 @@ export function CommentForm({
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       onSuccess?.();
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 

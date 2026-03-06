@@ -48,6 +48,9 @@ export function CommentItem({ comment, postId }: CommentItemProps) {
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       toast.success('Comment updated');
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   const { mutate: handleDelete } = useMutation({
@@ -55,6 +58,9 @@ export function CommentItem({ comment, postId }: CommentItemProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', postId] });
       toast.success('Comment deleted');
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 

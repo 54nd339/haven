@@ -1,6 +1,7 @@
 'use client';
 
 import { BarChart3 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { votePoll } from '@/lib/actions/post.actions';
@@ -29,6 +30,9 @@ export function PollCard({ question, options, expiresAt, userVotedOptionId }: Po
     mutationFn: (optionId: string) => votePoll(optionId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['feed'] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Failed to vote');
     },
   });
 

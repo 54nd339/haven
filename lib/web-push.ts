@@ -7,9 +7,7 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
   webPush.setVapidDetails('mailto:hello@haven.social', VAPID_PUBLIC, VAPID_PRIVATE);
 }
 
-export { webPush };
-
-export interface PushPayload {
+interface PushPayload {
   title: string;
   body: string;
   url?: string;
@@ -31,7 +29,7 @@ export async function sendPushNotification(
       },
       JSON.stringify(payload),
     );
-  } catch {
-    // subscription expired or invalid
+  } catch (err) {
+    console.error('[web-push] Failed to send notification:', err);
   }
 }

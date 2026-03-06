@@ -5,7 +5,6 @@ import {
   pinnedPosts,
   posts,
   profileViews,
-  restricts,
   storyHighlights,
   userBadges,
   users,
@@ -38,14 +37,6 @@ export interface StoryHighlightItem {
   name: string;
   coverUrl: string | null;
   order: number;
-}
-
-export interface RestrictedUser {
-  id: string;
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-  restrictedAt: Date;
 }
 
 export async function getPinnedPosts(userId: string): Promise<PinnedPostItem[]> {
@@ -109,23 +100,6 @@ export async function getStoryHighlights(userId: string): Promise<StoryHighlight
     .from(storyHighlights)
     .where(eq(storyHighlights.userId, userId))
     .orderBy(storyHighlights.order);
-}
-
-export async function getRestrictedUsers(userId: string): Promise<RestrictedUser[]> {
-  const rows = await db
-    .select({
-      id: users.id,
-      username: users.username,
-      displayName: users.displayName,
-      avatarUrl: users.avatarUrl,
-      restrictedAt: restricts.createdAt,
-    })
-    .from(restricts)
-    .innerJoin(users, eq(restricts.restrictedId, users.id))
-    .where(eq(restricts.restricterId, userId))
-    .orderBy(desc(restricts.createdAt));
-
-  return rows;
 }
 
 export async function recordProfileView(viewerId: string, viewedUserId: string) {
