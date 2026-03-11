@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { and, eq, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { posts } from '@/lib/db/schema';
+import { memories, posts } from '@/lib/db/schema';
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const memoryCandidates = await db
+  const candidates = await db
     .select({
       id: posts.id,
       authorId: posts.authorId,
@@ -27,12 +27,19 @@ export async function GET(req: Request) {
       ),
     );
 
-  return NextResponse.json({
-    surfaced: memoryCandidates.length,
-    memories: memoryCandidates.map((m) => ({
-      postId: m.id,
-      authorId: m.authorId,
-      originalDate: m.createdAt,
-    })),
-  });
+  if (candidates.length > 0) {
+    await db
+      .insert(memories)
+      .values(
+        candidates.map((c) => ({
+          userId: c.authorId,
+          postId: c.id,
+          originalDate: c.createdAt,
+          surfacedAt: new Date(),
+        })),
+      )
+      .onConflictDoNothing();
+  }
+
+  return NextResponse.json({ surfaced: candidates.length });
 }

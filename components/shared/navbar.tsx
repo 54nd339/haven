@@ -17,7 +17,7 @@ export function Navbar() {
         <span className="text-foreground text-lg font-bold">Haven</span>
         {incognito && <EyeOff className="text-muted-foreground h-4 w-4" />}
       </div>
-      <Button variant="ghost" size="icon" onClick={openPalette}>
+      <Button variant="ghost" size="icon" onClick={openPalette} aria-label="Open search">
         <Search className="h-5 w-5" />
       </Button>
     </header>

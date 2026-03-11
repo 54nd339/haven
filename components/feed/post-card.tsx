@@ -54,9 +54,39 @@ export function PostCard({ post }: PostCardProps) {
 
   const { mutate: handleBookmark } = useMutation({
     mutationFn: () => bookmarkPost(post.id),
+    onMutate: async () => {
+      await queryClient.cancelQueries({ queryKey: ['feed'] });
+      const previous = queryClient.getQueryData<{
+        pages: { posts: FeedPost[]; nextCursor: string | null }[];
+      }>(['feed']);
+      queryClient.setQueryData(
+        ['feed'],
+        (old: { pages: { posts: FeedPost[]; nextCursor: string | null }[] } | undefined) => {
+          if (!old) return old;
+          return {
+            ...old,
+            pages: old.pages.map((page) => ({
+              ...page,
+              posts: page.posts.map((p) =>
+                p.id === post.id ? { ...p, isBookmarked: !(p.isBookmarked ?? false) } : p,
+              ),
+            })),
+          };
+        },
+      );
+      return { previous };
+    },
     onSuccess: (result) => {
       toast.success(result.bookmarked ? 'Saved to collection' : 'Removed from collection');
+    },
+    onError: (_err, _postId, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(['feed'], context.previous);
+      }
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ['feed'] });
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
     },
   });
 
@@ -239,10 +269,10 @@ export function PostCard({ post }: PostCardProps) {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                className="text-muted-foreground"
+                className={cn('text-muted-foreground', post.isBookmarked && 'text-primary')}
                 onClick={() => handleBookmark()}
               >
-                <Bookmark className="size-4" />
+                <Bookmark className={cn('size-4', post.isBookmarked && 'fill-current')} />
               </Button>
             </div>
           </div>

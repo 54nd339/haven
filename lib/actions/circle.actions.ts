@@ -8,6 +8,11 @@ import { MAX_CIRCLE_MEMBERS } from '@/lib/constants';
 import { db } from '@/lib/db';
 import { getUserByClerkId } from '@/lib/db/queries/user.queries';
 import { circleMembers, circles } from '@/lib/db/schema';
+import {
+  addCircleMemberSchema,
+  createCircleSchema,
+  updateCircleSchema,
+} from '@/lib/validators/circle';
 
 async function getAuthenticatedUser() {
   const { userId: clerkId } = await auth();
@@ -19,8 +24,9 @@ async function getAuthenticatedUser() {
   return user;
 }
 
-export async function createCircle(name: string, emoji?: string) {
+export async function createCircle(input: { name: string; emoji?: string }) {
   const user = await getAuthenticatedUser();
+  const { name, emoji } = createCircleSchema.parse(input);
 
   const [circle] = await db
     .insert(circles)
@@ -31,8 +37,9 @@ export async function createCircle(name: string, emoji?: string) {
   return circle!;
 }
 
-export async function updateCircle(circleId: string, name: string, emoji?: string) {
+export async function updateCircle(input: { circleId: string; name: string; emoji?: string }) {
   const user = await getAuthenticatedUser();
+  const { circleId, name, emoji } = updateCircleSchema.parse(input);
 
   await db
     .update(circles)
@@ -53,8 +60,9 @@ export async function deleteCircle(circleId: string) {
   return { success: true };
 }
 
-export async function addCircleMember(circleId: string, userId: string) {
+export async function addCircleMember(input: { circleId: string; userId: string }) {
   const user = await getAuthenticatedUser();
+  const { circleId, userId } = addCircleMemberSchema.parse(input);
 
   const [circle] = await db
     .select({ ownerId: circles.ownerId })

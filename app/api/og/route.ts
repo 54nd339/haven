@@ -2,10 +2,15 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 
 import { scrapeOgData } from '@/lib/og-scraper';
+import { checkRateLimit } from '@/lib/rate-limit';
 
 export async function GET(req: Request) {
   const { userId } = await auth();
   if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  const rl = await checkRateLimit(`og:${userId}`);
+  if (rl.limited)
+    return NextResponse.json({ error: 'Too many requests' }, { status: 429, headers: rl.headers });
 
   const { searchParams } = new URL(req.url);
   const url = searchParams.get('url');

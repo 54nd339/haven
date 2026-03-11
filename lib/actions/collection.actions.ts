@@ -101,6 +101,16 @@ export async function saveToCollection(postId: string, collectionId?: string) {
 }
 
 export async function removeFromCollection(collectionId: string, postId: string) {
+  const user = await getAuthenticatedUser();
+
+  const [collection] = await db
+    .select({ id: collections.id })
+    .from(collections)
+    .where(and(eq(collections.id, collectionId), eq(collections.userId, user.id)))
+    .limit(1);
+
+  if (!collection) throw new Error('Collection not found');
+
   await db
     .delete(collectionItems)
     .where(and(eq(collectionItems.collectionId, collectionId), eq(collectionItems.postId, postId)));

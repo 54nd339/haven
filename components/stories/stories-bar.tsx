@@ -1,12 +1,17 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useQuery } from '@tanstack/react-query';
 
 import type { StoryRing } from '@/lib/db/queries/story.queries';
 
 import { StoryRings } from './story-ring';
-import { StoryViewer } from './story-viewer';
+
+const StoryViewer = dynamic(() => import('./story-viewer').then((m) => m.StoryViewer), {
+  ssr: false,
+  loading: () => <div className="bg-muted h-40 animate-pulse rounded-lg" />,
+});
 
 async function fetchRings(): Promise<StoryRing[]> {
   const res = await fetch('/api/stories');

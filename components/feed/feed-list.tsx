@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Flame, Loader2 } from 'lucide-react';
 import { useInfiniteQuery } from '@tanstack/react-query';
 
@@ -48,6 +48,8 @@ function PostSkeleton() {
 
 export function FeedList() {
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const [liveMessage, setLiveMessage] = useState('');
+  const prevPostCountRef = useRef(0);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading, isError } =
     useInfiniteQuery({
@@ -74,6 +76,25 @@ export function FeedList() {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
+  const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
+  const postCount = allPosts.length;
+
+  useEffect(() => {
+    if (
+      !isFetchingNextPage &&
+      postCount > 0 &&
+      prevPostCountRef.current > 0 &&
+      postCount > prevPostCountRef.current
+    ) {
+      const newCount = postCount - prevPostCountRef.current;
+      setLiveMessage(`${newCount} new post${newCount === 1 ? '' : 's'} loaded`);
+      const t = setTimeout(() => setLiveMessage(''), 3000);
+      prevPostCountRef.current = postCount;
+      return () => clearTimeout(t);
+    }
+    prevPostCountRef.current = postCount;
+  }, [isFetchingNextPage, postCount]);
+
   if (isLoading) {
     return (
       <div>
@@ -92,9 +113,7 @@ export function FeedList() {
     );
   }
 
-  const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
-
-  if (allPosts.length === 0) {
+  if (postCount === 0) {
     return (
       <div className="flex flex-col items-center gap-4 py-20 text-center">
         <div className="bg-primary/10 flex size-16 items-center justify-center rounded-2xl">
@@ -112,6 +131,9 @@ export function FeedList() {
 
   return (
     <div>
+      <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">
+        {liveMessage}
+      </span>
       {allPosts.map((post) => (
         <PostCard key={post.id} post={post} />
       ))}

@@ -1,6 +1,7 @@
 import { relations } from 'drizzle-orm';
 import { boolean, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
+import { circles } from './social';
 import { users } from './users';
 
 export const threads = pgTable('threads', {
@@ -24,7 +25,7 @@ export const posts = pgTable('posts', {
   collabUserId: uuid('collab_user_id').references(() => users.id),
   content: text('content').notNull(),
   visibility: text('visibility').notNull().default('public'),
-  circleId: uuid('circle_id'),
+  circleId: uuid('circle_id').references(() => circles.id, { onDelete: 'set null' }),
   threadId: uuid('thread_id').references(() => threads.id),
   threadOrder: integer('thread_order'),
   isDraft: boolean('is_draft').default(false).notNull(),

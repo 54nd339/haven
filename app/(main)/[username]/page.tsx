@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
@@ -11,6 +12,27 @@ import { getUserByClerkId } from '@/lib/db/queries/user.queries';
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
+}
+
+export async function generateMetadata({ params }: ProfilePageProps): Promise<Metadata> {
+  const { username } = await params;
+  const profile = await getProfileByUsername(username, '');
+  if (!profile) return { title: 'User not found' };
+
+  const title = profile.displayName ?? profile.username;
+  const description = profile.bio ?? `Profile of ${title} on Haven`;
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      ...(profile.avatarUrl && {
+        images: [{ url: profile.avatarUrl, alt: title }],
+      }),
+    },
+  };
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {

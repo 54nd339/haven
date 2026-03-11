@@ -69,6 +69,16 @@ export async function addToList(listId: string, userId: string) {
 }
 
 export async function removeFromList(listId: string, userId: string) {
+  const user = await getAuthenticatedUser();
+
+  const [list] = await db
+    .select({ id: userLists.id })
+    .from(userLists)
+    .where(and(eq(userLists.id, listId), eq(userLists.ownerId, user.id)))
+    .limit(1);
+
+  if (!list) throw new Error('List not found');
+
   await db
     .delete(userListMembers)
     .where(and(eq(userListMembers.listId, listId), eq(userListMembers.userId, userId)));

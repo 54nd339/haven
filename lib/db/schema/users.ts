@@ -1,5 +1,5 @@
 import { relations } from 'drizzle-orm';
-import { boolean, integer, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, integer, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 export const users = pgTable('users', {
   id: uuid('id').defaultRandom().primaryKey(),
@@ -57,21 +57,27 @@ export const userBadges = pgTable('user_badges', {
     .$onUpdate(() => new Date()),
 });
 
-export const profileViews = pgTable('profile_views', {
-  id: uuid('id').defaultRandom().primaryKey(),
-  viewerId: uuid('viewer_id')
-    .notNull()
-    .references(() => users.id),
-  viewedUserId: uuid('viewed_user_id')
-    .notNull()
-    .references(() => users.id),
-  viewedAt: timestamp('viewed_at').defaultNow().notNull(),
-  createdAt: timestamp('created_at').defaultNow().notNull(),
-  updatedAt: timestamp('updated_at')
-    .defaultNow()
-    .notNull()
-    .$onUpdate(() => new Date()),
-});
+export const profileViews = pgTable(
+  'profile_views',
+  {
+    id: uuid('id').defaultRandom().primaryKey(),
+    viewerId: uuid('viewer_id')
+      .notNull()
+      .references(() => users.id),
+    viewedUserId: uuid('viewed_user_id')
+      .notNull()
+      .references(() => users.id),
+    viewedAt: timestamp('viewed_at').defaultNow().notNull(),
+    createdAt: timestamp('created_at').defaultNow().notNull(),
+    updatedAt: timestamp('updated_at')
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex('profile_views_viewer_viewed_idx').on(table.viewerId, table.viewedUserId),
+  ],
+);
 
 export const pushSubscriptions = pgTable('push_subscriptions', {
   id: uuid('id').defaultRandom().primaryKey(),
