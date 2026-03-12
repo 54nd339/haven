@@ -8,9 +8,7 @@ const next = require("next");
 const dev = process.env.NODE_ENV !== "production"; //check the implementation docs on nextjs website to know more
 const nextApp = next({ dev }); //nextApp will tell next if the app is in development or production mode
 const handle = nextApp.getRequestHandler();
-if (dev) {
-  require("dotenv").config({ path: "./config.env" });
-}
+require("dotenv").config();
 
 const connectDb = require("./utilsServer/connectDb");
 const PORT = process.env.PORT || 3000; //when the app will be deployed to Heroku, Heroku auto adds the port in env variables

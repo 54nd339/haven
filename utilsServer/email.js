@@ -5,13 +5,11 @@ class Email {
     this.to = user.email;
     this.firstName = user.name.split(" ")[0];
     this.from = `${process.env.EMAIL_FROM}`;
-    console.log(user);
   }
 
   newTransport() {
     return nodemailer.createTransport({
       service: 'gmail',
-      host: 'smtp.gmail.com',
       auth: {
         user: process.env.EMAIL_USERNAME,
         pass: process.env.EMAIL_PASSWORD,

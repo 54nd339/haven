@@ -2,8 +2,8 @@
 FROM --platform=$BUILDPLATFORM node:16.8.0-alpine AS builder
 
 WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm install
+COPY package*.json ./
+RUN npm ci
 COPY . .
 RUN npm run build
 
@@ -13,15 +13,9 @@ FROM node:16.8.0-alpine AS production
 WORKDIR /app
 ENV NODE_ENV=production
 
-COPY package.json package-lock.json ./
-RUN npm install --only=production
-
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/server.js .
-COPY --from=builder /app/utilsServer ./utilsServer
-COPY --from=builder /app/utils ./utils
-COPY --from=builder /app/api ./api
+COPY package*.json ./
+RUN npm ci --only=production
+COPY --from=builder /app .
 
 EXPOSE 3000
 USER node
