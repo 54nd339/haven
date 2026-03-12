@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import { ImagePlus, Loader2, X } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
@@ -15,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { createStory } from '@/lib/actions/story.actions';
-import { useUploadThing } from '@/lib/uploadthing-client';
+import { useUploadThing } from '@/lib/uploadthing/client';
 
 interface CreateStoryDialogProps {
   children: React.ReactNode;
@@ -40,6 +41,9 @@ export function CreateStoryDialog({ children }: CreateStoryDialogProps) {
       setPreview(null);
       setUploadedUrl(null);
       queryClient.invalidateQueries({ queryKey: ['story-rings'] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 

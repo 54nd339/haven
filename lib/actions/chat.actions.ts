@@ -3,10 +3,10 @@
 import { revalidatePath } from 'next/cache';
 import { and, eq } from 'drizzle-orm';
 
+import { publishEvent } from '@/lib/ably/server';
 import { getAuthenticatedUser } from '@/lib/auth';
 import { db } from '@/lib/db';
 import { conversationMembers, conversations, messages } from '@/lib/db/schema';
-import { pusherServer } from '@/lib/pusher/server';
 
 export async function createConversation(otherUserId: string) {
   const user = await getAuthenticatedUser();
@@ -113,11 +113,7 @@ export async function sendMessage(input: {
     },
   };
 
-  await pusherServer.trigger(
-    `private-conversation-${input.conversationId}`,
-    'new-message',
-    messagePayload,
-  );
+  await publishEvent(`private-conversation-${input.conversationId}`, 'new-message', messagePayload);
 
   return messagePayload;
 }

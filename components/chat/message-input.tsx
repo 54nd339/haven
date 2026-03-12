@@ -3,12 +3,13 @@
 import { useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import { ImagePlay, ImagePlus, Loader2, Send } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { sendMessage } from '@/lib/actions/chat.actions';
-import { useUploadThing } from '@/lib/uploadthing-client';
+import { useUploadThing } from '@/lib/uploadthing/client';
 
 const GifPicker = dynamic(() => import('./gif-picker').then((m) => m.GifPicker), {
   ssr: false,
@@ -39,6 +40,9 @@ export function MessageInput({ conversationId }: MessageInputProps) {
       setContent('');
       queryClient.invalidateQueries({ queryKey: ['messages', conversationId] });
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 

@@ -19,7 +19,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { deleteMessageForEveryone, editMessage } from '@/lib/actions/chat-extra.actions';
 import type { ChatMessage } from '@/lib/db/queries/chat.queries';
 import { cn, formatRelativeTime } from '@/lib/utils';
-import { usePusherChannel } from '@/hooks/use-pusher-channel';
+import { useRealtimeChannel } from '@/hooks/use-realtime-channel';
 
 interface MessagesResponse {
   messages: ChatMessage[];
@@ -108,7 +108,7 @@ export function MessageList({ conversationId, currentUserId }: MessageListProps)
     [conversationId, currentUserId, queryClient],
   );
 
-  usePusherChannel(`private-conversation-${conversationId}`, 'new-message', handleNewMessage);
+  useRealtimeChannel(`private-conversation-${conversationId}`, 'new-message', handleNewMessage);
 
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading } = useInfiniteQuery({
     queryKey: ['messages', conversationId],

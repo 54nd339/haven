@@ -54,7 +54,7 @@ export default async function PostPage({ params }: PostPageProps) {
   const user = await getUserByClerkId(clerkId);
   if (!user) return notFound();
 
-  const post = await getPostById(id);
+  const post = await getPostById(id, user.id);
   if (!post) return notFound();
 
   const comments = await getCommentsForPost(id, user.id);
@@ -72,7 +72,9 @@ export default async function PostPage({ params }: PostPageProps) {
 
       <PostDetailCard post={post} currentUserId={user.id} />
       <Separator />
-      <CommentThread postId={id} initialComments={comments} />
+      <div id="comments-section">
+        <CommentThread postId={id} initialComments={comments} />
+      </div>
     </div>
   );
 }

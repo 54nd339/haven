@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, lt, or, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, lt, or, sql } from 'drizzle-orm';
 
 import { DEFAULT_PAGE_SIZE } from '@/lib/constants';
 import { db } from '@/lib/db';
@@ -160,20 +160,10 @@ export async function getFeedPosts(
         avatarUrl: users.avatarUrl,
       })
       .from(users)
-      .where(sql`${users.id} = ANY(${allUserIds})`),
-    db
-      .select()
-      .from(postMedia)
-      .where(sql`${postMedia.postId} = ANY(${postIds})`)
-      .orderBy(postMedia.order),
-    db
-      .select()
-      .from(postLinkPreviews)
-      .where(sql`${postLinkPreviews.postId} = ANY(${postIds})`),
-    db
-      .select()
-      .from(polls)
-      .where(sql`${polls.postId} = ANY(${postIds})`),
+      .where(inArray(users.id, allUserIds)),
+    db.select().from(postMedia).where(inArray(postMedia.postId, postIds)).orderBy(postMedia.order),
+    db.select().from(postLinkPreviews).where(inArray(postLinkPreviews.postId, postIds)),
+    db.select().from(polls).where(inArray(polls.postId, postIds)),
     db
       .select({
         entityId: reactions.entityId,
@@ -181,7 +171,7 @@ export async function getFeedPosts(
         count: sql<number>`count(*)::int`,
       })
       .from(reactions)
-      .where(and(sql`${reactions.entityId} = ANY(${postIds})`, eq(reactions.entityType, 'post')))
+      .where(and(inArray(reactions.entityId, postIds), eq(reactions.entityType, 'post')))
       .groupBy(reactions.entityId, reactions.reactionType),
     db
       .select({
@@ -189,7 +179,7 @@ export async function getFeedPosts(
         count: sql<number>`count(*)::int`,
       })
       .from(comments)
-      .where(sql`${comments.postId} = ANY(${postIds})`)
+      .where(inArray(comments.postId, postIds))
       .groupBy(comments.postId),
     db
       .select({
@@ -197,14 +187,14 @@ export async function getFeedPosts(
         count: sql<number>`count(*)::int`,
       })
       .from(shares)
-      .where(sql`${shares.postId} = ANY(${postIds})`)
+      .where(inArray(shares.postId, postIds))
       .groupBy(shares.postId),
     db
       .select({ entityId: reactions.entityId, reactionType: reactions.reactionType })
       .from(reactions)
       .where(
         and(
-          sql`${reactions.entityId} = ANY(${postIds})`,
+          inArray(reactions.entityId, postIds),
           eq(reactions.entityType, 'post'),
           eq(reactions.userId, userId),
         ),
@@ -213,11 +203,11 @@ export async function getFeedPosts(
       .select({ postId: collectionItems.postId })
       .from(collectionItems)
       .innerJoin(collections, eq(collectionItems.collectionId, collections.id))
-      .where(and(eq(collections.userId, userId), sql`${collectionItems.postId} = ANY(${postIds})`)),
+      .where(and(eq(collections.userId, userId), inArray(collectionItems.postId, postIds))),
     db
       .select({ postId: pinnedPosts.postId })
       .from(pinnedPosts)
-      .where(and(eq(pinnedPosts.userId, userId), sql`${pinnedPosts.postId} = ANY(${postIds})`)),
+      .where(and(eq(pinnedPosts.userId, userId), inArray(pinnedPosts.postId, postIds))),
   ]);
 
   const userMap = new Map(usersData.map((u) => [u.id, u]));
@@ -247,30 +237,34 @@ export async function getFeedPosts(
 
   const pollIds = pollsData.map((p) => p.id);
   if (pollIds.length > 0) {
-    [pollOptionsData, pollVotesData, userPollVotes] = await Promise.all([
-      db
-        .select({
-          id: pollOptions.id,
-          pollId: pollOptions.pollId,
-          text: pollOptions.text,
-          order: pollOptions.order,
-        })
-        .from(pollOptions)
-        .where(sql`${pollOptions.pollId} = ANY(${pollIds})`)
-        .orderBy(pollOptions.order),
-      db
-        .select({
-          optionId: pollVotes.optionId,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(pollVotes)
-        .where(sql`${pollVotes.optionId} = ANY(${pollIds})`)
-        .groupBy(pollVotes.optionId),
-      db
-        .select({ optionId: pollVotes.optionId })
-        .from(pollVotes)
-        .where(and(sql`${pollVotes.optionId} = ANY(${pollIds})`, eq(pollVotes.userId, userId))),
-    ]);
+    pollOptionsData = await db
+      .select({
+        id: pollOptions.id,
+        pollId: pollOptions.pollId,
+        text: pollOptions.text,
+        order: pollOptions.order,
+      })
+      .from(pollOptions)
+      .where(inArray(pollOptions.pollId, pollIds))
+      .orderBy(pollOptions.order);
+
+    const optionIds = pollOptionsData.map((o) => o.id);
+    if (optionIds.length > 0) {
+      [pollVotesData, userPollVotes] = await Promise.all([
+        db
+          .select({
+            optionId: pollVotes.optionId,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(pollVotes)
+          .where(inArray(pollVotes.optionId, optionIds))
+          .groupBy(pollVotes.optionId),
+        db
+          .select({ optionId: pollVotes.optionId })
+          .from(pollVotes)
+          .where(and(inArray(pollVotes.optionId, optionIds), eq(pollVotes.userId, userId))),
+      ]);
+    }
   }
 
   const pollOptionsMap = new Map<string, typeof pollOptionsData>();
@@ -452,20 +446,10 @@ export async function getPostsByHashtag(
         avatarUrl: users.avatarUrl,
       })
       .from(users)
-      .where(sql`${users.id} = ANY(${allUserIds})`),
-    db
-      .select()
-      .from(postMedia)
-      .where(sql`${postMedia.postId} = ANY(${postIds})`)
-      .orderBy(postMedia.order),
-    db
-      .select()
-      .from(postLinkPreviews)
-      .where(sql`${postLinkPreviews.postId} = ANY(${postIds})`),
-    db
-      .select()
-      .from(polls)
-      .where(sql`${polls.postId} = ANY(${postIds})`),
+      .where(inArray(users.id, allUserIds)),
+    db.select().from(postMedia).where(inArray(postMedia.postId, postIds)).orderBy(postMedia.order),
+    db.select().from(postLinkPreviews).where(inArray(postLinkPreviews.postId, postIds)),
+    db.select().from(polls).where(inArray(polls.postId, postIds)),
     db
       .select({
         entityId: reactions.entityId,
@@ -473,7 +457,7 @@ export async function getPostsByHashtag(
         count: sql<number>`count(*)::int`,
       })
       .from(reactions)
-      .where(and(sql`${reactions.entityId} = ANY(${postIds})`, eq(reactions.entityType, 'post')))
+      .where(and(inArray(reactions.entityId, postIds), eq(reactions.entityType, 'post')))
       .groupBy(reactions.entityId, reactions.reactionType),
     db
       .select({
@@ -481,7 +465,7 @@ export async function getPostsByHashtag(
         count: sql<number>`count(*)::int`,
       })
       .from(comments)
-      .where(sql`${comments.postId} = ANY(${postIds})`)
+      .where(inArray(comments.postId, postIds))
       .groupBy(comments.postId),
     db
       .select({
@@ -489,14 +473,14 @@ export async function getPostsByHashtag(
         count: sql<number>`count(*)::int`,
       })
       .from(shares)
-      .where(sql`${shares.postId} = ANY(${postIds})`)
+      .where(inArray(shares.postId, postIds))
       .groupBy(shares.postId),
     db
       .select({ entityId: reactions.entityId, reactionType: reactions.reactionType })
       .from(reactions)
       .where(
         and(
-          sql`${reactions.entityId} = ANY(${postIds})`,
+          inArray(reactions.entityId, postIds),
           eq(reactions.entityType, 'post'),
           eq(reactions.userId, userId),
         ),
@@ -505,11 +489,11 @@ export async function getPostsByHashtag(
       .select({ postId: collectionItems.postId })
       .from(collectionItems)
       .innerJoin(collections, eq(collectionItems.collectionId, collections.id))
-      .where(and(eq(collections.userId, userId), sql`${collectionItems.postId} = ANY(${postIds})`)),
+      .where(and(eq(collections.userId, userId), inArray(collectionItems.postId, postIds))),
     db
       .select({ postId: pinnedPosts.postId })
       .from(pinnedPosts)
-      .where(and(eq(pinnedPosts.userId, userId), sql`${pinnedPosts.postId} = ANY(${postIds})`)),
+      .where(and(eq(pinnedPosts.userId, userId), inArray(pinnedPosts.postId, postIds))),
   ]);
 
   const userMap = new Map(usersData.map((u) => [u.id, u]));
@@ -539,30 +523,34 @@ export async function getPostsByHashtag(
 
   const pollIds = pollsData.map((p) => p.id);
   if (pollIds.length > 0) {
-    [pollOptionsData, pollVotesData, userPollVotes] = await Promise.all([
-      db
-        .select({
-          id: pollOptions.id,
-          pollId: pollOptions.pollId,
-          text: pollOptions.text,
-          order: pollOptions.order,
-        })
-        .from(pollOptions)
-        .where(sql`${pollOptions.pollId} = ANY(${pollIds})`)
-        .orderBy(pollOptions.order),
-      db
-        .select({
-          optionId: pollVotes.optionId,
-          count: sql<number>`count(*)::int`,
-        })
-        .from(pollVotes)
-        .where(sql`${pollVotes.optionId} = ANY(${pollIds})`)
-        .groupBy(pollVotes.optionId),
-      db
-        .select({ optionId: pollVotes.optionId })
-        .from(pollVotes)
-        .where(and(sql`${pollVotes.optionId} = ANY(${pollIds})`, eq(pollVotes.userId, userId))),
-    ]);
+    pollOptionsData = await db
+      .select({
+        id: pollOptions.id,
+        pollId: pollOptions.pollId,
+        text: pollOptions.text,
+        order: pollOptions.order,
+      })
+      .from(pollOptions)
+      .where(inArray(pollOptions.pollId, pollIds))
+      .orderBy(pollOptions.order);
+
+    const optionIds = pollOptionsData.map((o) => o.id);
+    if (optionIds.length > 0) {
+      [pollVotesData, userPollVotes] = await Promise.all([
+        db
+          .select({
+            optionId: pollVotes.optionId,
+            count: sql<number>`count(*)::int`,
+          })
+          .from(pollVotes)
+          .where(inArray(pollVotes.optionId, optionIds))
+          .groupBy(pollVotes.optionId),
+        db
+          .select({ optionId: pollVotes.optionId })
+          .from(pollVotes)
+          .where(and(inArray(pollVotes.optionId, optionIds), eq(pollVotes.userId, userId))),
+      ]);
+    }
   }
 
   const pollOptionsMap = new Map<string, typeof pollOptionsData>();

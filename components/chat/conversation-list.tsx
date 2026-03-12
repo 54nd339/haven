@@ -54,6 +54,9 @@ export function ConversationList() {
       toast.success(result.muted ? 'Muted' : 'Unmuted');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   const { mutate: toggleArchive } = useMutation({
@@ -62,6 +65,9 @@ export function ConversationList() {
       toast.success(result.archived ? 'Archived' : 'Unarchived');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   const { mutate: togglePin } = useMutation({
@@ -69,6 +75,9 @@ export function ConversationList() {
     onSuccess: (result) => {
       toast.success(result.pinned ? 'Pinned' : 'Unpinned');
       queryClient.invalidateQueries({ queryKey: ['conversations'] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 

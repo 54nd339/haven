@@ -7,10 +7,12 @@ import { Bookmark, Edit3, Eye, MessageCircle, MoreHorizontal, Share2, Trash2 } f
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
+import { EditPostDialog } from '@/components/feed/edit-post-dialog';
 import { LinkPreview } from '@/components/feed/link-preview';
 import { MediaGallery } from '@/components/feed/media-gallery';
 import { PollCard } from '@/components/feed/poll-card';
 import { ReactionBar } from '@/components/feed/reaction-bar';
+import { ShareSheet } from '@/components/shared/share-sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -65,12 +67,16 @@ interface PostDetailCardProps {
       id: string;
       question: string;
       expiresAt: Date | null;
+      userVotedOptionId: string | null;
       options: Array<{
         id: string;
         text: string;
         order: number;
+        voteCount: number;
       }>;
     } | null;
+    reactionCounts: Record<string, number>;
+    userReaction: string | null;
   };
   currentUserId: string;
 }
@@ -79,6 +85,7 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [optimisticBookmarked, setOptimisticBookmarked] = useState<boolean | null>(null);
+  const [editOpen, setEditOpen] = useState(false);
 
   const isAuthor = post.author.id === currentUserId;
   const isBookmarked = optimisticBookmarked ?? false;
@@ -108,6 +115,9 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
       toast.success('Post deleted');
       queryClient.invalidateQueries({ queryKey: ['feed'] });
       router.push('/');
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 
@@ -161,7 +171,7 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
                 {isAuthor && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setEditOpen(true)}>
                       <Edit3 className="size-4" />
                       Edit
                     </DropdownMenuItem>
@@ -207,9 +217,9 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
         {post.poll && (
           <PollCard
             question={post.poll.question}
-            options={post.poll.options.map((o) => ({ ...o, voteCount: 0 }))}
+            options={post.poll.options}
             expiresAt={post.poll.expiresAt}
-            userVotedOptionId={null}
+            userVotedOptionId={post.poll.userVotedOptionId}
           />
         )}
       </div>
@@ -227,17 +237,34 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
       <Separator className="my-3" />
 
       <div className="flex items-center gap-1">
-        <ReactionBar entityId={post.id} entityType="post" reactionCounts={{}} userReaction={null} />
+        <ReactionBar
+          entityId={post.id}
+          entityType="post"
+          reactionCounts={post.reactionCounts}
+          userReaction={post.userReaction}
+        />
 
-        <Button variant="ghost" size="sm" className="text-muted-foreground gap-1.5 text-xs">
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground gap-1.5 text-xs"
+          onClick={() =>
+            document.getElementById('comments-section')?.scrollIntoView({ behavior: 'smooth' })
+          }
+        >
           <MessageCircle className="size-4" />
           Comments
         </Button>
 
-        <Button variant="ghost" size="sm" className="text-muted-foreground gap-1.5 text-xs">
-          <Share2 className="size-4" />
-          Share
-        </Button>
+        <ShareSheet
+          url={typeof window !== 'undefined' ? window.location.href : `/post/${post.id}`}
+          title={post.content.slice(0, 60)}
+        >
+          <Button variant="ghost" size="sm" className="text-muted-foreground gap-1.5 text-xs">
+            <Share2 className="size-4" />
+            Share
+          </Button>
+        </ShareSheet>
 
         <div className="flex-1" />
 
@@ -250,6 +277,13 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
           <Bookmark className={cn('size-4', isBookmarked && 'fill-current')} />
         </Button>
       </div>
+
+      <EditPostDialog
+        postId={post.id}
+        initialContent={post.content}
+        open={editOpen}
+        onOpenChange={setEditOpen}
+      />
     </article>
   );
 }

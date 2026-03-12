@@ -1,16 +1,18 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
+import { cookies } from 'next/headers';
 import { eq } from 'drizzle-orm';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 
-import { getAuthenticatedUser } from '@/lib/auth';
+import { getOrCreateUser } from '@/lib/auth';
 import { db } from '@/lib/db';
-import { isUsernameTaken } from '@/lib/db/queries/user.queries';
+import { getUserByClerkId, isUsernameTaken } from '@/lib/db/queries/user.queries';
 import { userInterests, users } from '@/lib/db/schema';
 import { type OnboardingInput, onboardingSchema } from '@/lib/validators/user';
 
 export async function completeOnboarding(input: OnboardingInput) {
-  const user = await getAuthenticatedUser();
+  const user = await getOrCreateUser();
   const validated = onboardingSchema.parse(input);
 
   const taken = await isUsernameTaken(validated.username, user.id);
@@ -35,13 +37,39 @@ export async function completeOnboarding(input: OnboardingInput) {
     );
   }
 
+  const clerk = await clerkClient();
+  await clerk.users.updateUserMetadata(user.clerkId, {
+    publicMetadata: { onboardingComplete: true },
+  });
+
+  const cookieStore = await cookies();
+  cookieStore.set('__haven_onboarded', '1', {
+    maxAge: 86400,
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+  });
+
   revalidatePath('/');
   return { success: true };
 }
 
+export async function setOnboardingCookie() {
+  const cookieStore = await cookies();
+  cookieStore.set('__haven_onboarded', '1', {
+    maxAge: 86400,
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
 export async function checkUsernameAvailability(username: string) {
-  const user = await getAuthenticatedUser();
-  const taken = await isUsernameTaken(username, user.id);
+  const { userId: clerkId } = await auth();
+  if (!clerkId) throw new Error('Unauthorized');
+
+  const user = await getUserByClerkId(clerkId);
+  const taken = await isUsernameTaken(username, user?.id);
 
   return { available: !taken };
 }

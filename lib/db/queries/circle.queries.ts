@@ -1,4 +1,4 @@
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { circleMembers, circles, posts, users } from '@/lib/db/schema';
@@ -123,7 +123,7 @@ export async function getCirclePosts(
       avatarUrl: users.avatarUrl,
     })
     .from(users)
-    .where(sql`${users.id} = ANY(${authorIds})`);
+    .where(inArray(users.id, authorIds));
 
   const authorMap = new Map(authorsData.map((a) => [a.id, a]));
 

@@ -87,7 +87,7 @@ export function ActivityList() {
         <div className="space-y-1">
           <h3 className="text-sm font-semibold">No activity yet</h3>
           <p className="text-muted-foreground text-xs">
-            Your reactions, comments, and follows will appear here
+            Interact with posts to see your activity log
           </p>
         </div>
       </div>

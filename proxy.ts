@@ -17,8 +17,9 @@ export default clerkMiddleware(async (auth, request) => {
 
   const { sessionClaims } = await auth.protect();
 
-  const onboardingComplete = (sessionClaims?.metadata as Record<string, unknown>)
-    ?.onboardingComplete;
+  const onboardingComplete =
+    (sessionClaims?.metadata as Record<string, unknown>)?.onboardingComplete ||
+    request.cookies.get('__haven_onboarded')?.value === '1';
 
   if (!onboardingComplete && !isOnboardingRoute(request)) {
     return NextResponse.redirect(new URL('/onboarding', request.url));

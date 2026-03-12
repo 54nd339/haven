@@ -1,4 +1,4 @@
-import { and, desc, eq, lt, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, lt, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { conversationMembers, conversations, messages, users } from '@/lib/db/schema';
@@ -65,7 +65,7 @@ export async function getConversations(userId: string): Promise<ConversationPrev
   const convs = await db
     .select()
     .from(conversations)
-    .where(sql`${conversations.id} = ANY(${convIds})`)
+    .where(inArray(conversations.id, convIds))
     .orderBy(desc(conversations.updatedAt));
 
   const allMembers = await db
@@ -74,7 +74,7 @@ export async function getConversations(userId: string): Promise<ConversationPrev
       userId: conversationMembers.userId,
     })
     .from(conversationMembers)
-    .where(sql`${conversationMembers.conversationId} = ANY(${convIds})`);
+    .where(inArray(conversationMembers.conversationId, convIds));
 
   const otherUserIds = new Set<string>();
   const convOtherUserMap = new Map<string, string>();
@@ -96,7 +96,7 @@ export async function getConversations(userId: string): Promise<ConversationPrev
             avatarUrl: users.avatarUrl,
           })
           .from(users)
-          .where(sql`${users.id} = ANY(${[...otherUserIds]})`)
+          .where(inArray(users.id, [...otherUserIds]))
       : [];
 
   const userMap = new Map(otherUsersData.map((u) => [u.id, u]));
@@ -212,7 +212,7 @@ export async function getMessages(
             avatarUrl: users.avatarUrl,
           })
           .from(users)
-          .where(sql`${users.id} = ANY(${senderIds})`)
+          .where(inArray(users.id, senderIds))
       : [];
 
   const senderMap = new Map(sendersData.map((u) => [u.id, u]));

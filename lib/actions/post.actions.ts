@@ -1,7 +1,7 @@
 'use server';
 
 import { revalidatePath } from 'next/cache';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { createNotification } from '@/lib/actions/notification.helper';
 import { getAuthenticatedUser } from '@/lib/auth';
@@ -16,6 +16,7 @@ import {
   pollVotes,
   postEditHistory,
   postHashtags,
+  postLinkPreviews,
   postMedia,
   posts,
   reactions,
@@ -82,6 +83,17 @@ export async function createPost(input: CreatePostInput) {
         })),
       );
     }
+  }
+
+  if (validated.linkPreview) {
+    await db.insert(postLinkPreviews).values({
+      postId: post.id,
+      url: validated.linkPreview.url,
+      title: validated.linkPreview.title ?? null,
+      description: validated.linkPreview.description ?? null,
+      imageUrl: validated.linkPreview.imageUrl ?? null,
+      siteName: validated.linkPreview.siteName ?? null,
+    });
   }
 
   // Extract and save hashtags
@@ -312,9 +324,7 @@ export async function votePoll(optionId: string) {
   const existingVotes = await db
     .select({ id: pollVotes.id })
     .from(pollVotes)
-    .where(
-      and(eq(pollVotes.userId, user.id), sql`${pollVotes.optionId} = ANY(${samePollOptionIds})`),
-    )
+    .where(and(eq(pollVotes.userId, user.id), inArray(pollVotes.optionId, samePollOptionIds)))
     .limit(1);
 
   if (existingVotes.length > 0) {

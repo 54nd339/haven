@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, or, sql } from 'drizzle-orm';
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { follows, posts, users } from '@/lib/db/schema';
@@ -58,7 +58,7 @@ export async function searchUsers(
     .where(
       and(
         eq(follows.followerId, currentUserId),
-        sql`${follows.followingId} = ANY(${resultIds})`,
+        inArray(follows.followingId, resultIds),
         eq(follows.status, 'accepted'),
       ),
     );
@@ -105,7 +105,7 @@ export async function searchPosts(query: string, limit: number = 20): Promise<Se
       avatarUrl: users.avatarUrl,
     })
     .from(users)
-    .where(sql`${users.id} = ANY(${authorIds})`);
+    .where(inArray(users.id, authorIds));
 
   const authorMap = new Map(authorsData.map((a) => [a.id, a]));
 
@@ -181,7 +181,7 @@ export async function getTrendingPosts(limit: number = 20): Promise<SearchPost[]
       avatarUrl: users.avatarUrl,
     })
     .from(users)
-    .where(sql`${users.id} = ANY(${authorIds})`);
+    .where(inArray(users.id, authorIds));
 
   const authorMap = new Map(authorsData.map((a) => [a.id, a]));
 

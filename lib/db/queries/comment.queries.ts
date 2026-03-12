@@ -1,7 +1,7 @@
-import { and, asc, eq, sql } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
-import { comments, reactions, users } from '@/lib/db/schema';
+import { comments, pollOptions, pollVotes, reactions, users } from '@/lib/db/schema';
 
 export interface CommentWithAuthor {
   id: string;
@@ -56,7 +56,7 @@ export async function getCommentsForPost(
         avatarUrl: users.avatarUrl,
       })
       .from(users)
-      .where(sql`${users.id} = ANY(${authorIds})`),
+      .where(inArray(users.id, authorIds)),
     db
       .select({
         entityId: reactions.entityId,
@@ -64,16 +64,14 @@ export async function getCommentsForPost(
         count: sql<number>`count(*)::int`,
       })
       .from(reactions)
-      .where(
-        and(sql`${reactions.entityId} = ANY(${commentIds})`, eq(reactions.entityType, 'comment')),
-      )
+      .where(and(inArray(reactions.entityId, commentIds), eq(reactions.entityType, 'comment')))
       .groupBy(reactions.entityId, reactions.reactionType),
     db
       .select({ entityId: reactions.entityId, reactionType: reactions.reactionType })
       .from(reactions)
       .where(
         and(
-          sql`${reactions.entityId} = ANY(${commentIds})`,
+          inArray(reactions.entityId, commentIds),
           eq(reactions.entityType, 'comment'),
           eq(reactions.userId, userId),
         ),
@@ -143,30 +141,59 @@ export async function getCommentsForPost(
   return topLevel;
 }
 
-export async function getPostById(postId: string) {
-  const { posts, postMedia, postLinkPreviews, polls, pollOptions } =
-    await import('@/lib/db/schema');
+export async function getPostById(postId: string, currentUserId?: string) {
+  const { postMedia, postLinkPreviews, polls, posts } = await import('@/lib/db/schema');
 
   const [post] = await db.select().from(posts).where(eq(posts.id, postId)).limit(1);
 
   if (!post) return null;
 
-  const [author, media, linkPreviews, pollData] = await Promise.all([
-    db
-      .select({
-        id: users.id,
-        username: users.username,
-        displayName: users.displayName,
-        avatarUrl: users.avatarUrl,
-      })
-      .from(users)
-      .where(eq(users.id, post.authorId))
-      .limit(1)
-      .then((rows) => rows[0]!),
-    db.select().from(postMedia).where(eq(postMedia.postId, postId)).orderBy(asc(postMedia.order)),
-    db.select().from(postLinkPreviews).where(eq(postLinkPreviews.postId, postId)).limit(1),
-    db.select().from(polls).where(eq(polls.postId, postId)).limit(1),
-  ]);
+  const [author, media, linkPreviews, pollData, reactionCountsRows, userReactionRow] =
+    await Promise.all([
+      db
+        .select({
+          id: users.id,
+          username: users.username,
+          displayName: users.displayName,
+          avatarUrl: users.avatarUrl,
+        })
+        .from(users)
+        .where(eq(users.id, post.authorId))
+        .limit(1)
+        .then((rows) => rows[0]!),
+      db.select().from(postMedia).where(eq(postMedia.postId, postId)).orderBy(asc(postMedia.order)),
+      db.select().from(postLinkPreviews).where(eq(postLinkPreviews.postId, postId)).limit(1),
+      db.select().from(polls).where(eq(polls.postId, postId)).limit(1),
+      db
+        .select({
+          reactionType: reactions.reactionType,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(reactions)
+        .where(and(eq(reactions.entityId, postId), eq(reactions.entityType, 'post')))
+        .groupBy(reactions.reactionType),
+      currentUserId
+        ? db
+            .select({ reactionType: reactions.reactionType })
+            .from(reactions)
+            .where(
+              and(
+                eq(reactions.entityId, postId),
+                eq(reactions.entityType, 'post'),
+                eq(reactions.userId, currentUserId),
+              ),
+            )
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
+
+  const reactionCounts: Record<string, number> = {};
+  for (const r of reactionCountsRows) {
+    reactionCounts[r.reactionType] = r.count;
+  }
+
+  const userReaction: string | null =
+    userReactionRow.length > 0 ? userReactionRow[0]!.reactionType : null;
 
   let pollWithOptions = null;
   if (pollData.length > 0) {
@@ -176,9 +203,36 @@ export async function getPostById(postId: string) {
       .where(eq(pollOptions.pollId, pollData[0]!.id))
       .orderBy(asc(pollOptions.order));
 
+    const optionIds = opts.map((o) => o.id);
+
+    const [voteCountRows, userVoteRow] = await Promise.all([
+      db
+        .select({
+          optionId: pollVotes.optionId,
+          count: sql<number>`count(*)::int`,
+        })
+        .from(pollVotes)
+        .where(inArray(pollVotes.optionId, optionIds))
+        .groupBy(pollVotes.optionId),
+      currentUserId
+        ? db
+            .select({ optionId: pollVotes.optionId })
+            .from(pollVotes)
+            .where(and(eq(pollVotes.userId, currentUserId), inArray(pollVotes.optionId, optionIds)))
+            .limit(1)
+        : Promise.resolve([]),
+    ]);
+
+    const voteCountMap = new Map(voteCountRows.map((v) => [v.optionId, v.count]));
+    const userVotedOptionId = userVoteRow.length > 0 ? userVoteRow[0]!.optionId : null;
+
     pollWithOptions = {
       ...pollData[0]!,
-      options: opts,
+      options: opts.map((o) => ({
+        ...o,
+        voteCount: voteCountMap.get(o.id) ?? 0,
+      })),
+      userVotedOptionId,
     };
   }
 
@@ -203,5 +257,7 @@ export async function getPostById(postId: string) {
     media,
     linkPreview: linkPreviews[0] ?? null,
     poll: pollWithOptions,
+    reactionCounts,
+    userReaction,
   };
 }

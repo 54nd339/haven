@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { ArrowLeft, ImageIcon, Phone, Video } from 'lucide-react';
+import { toast } from 'sonner';
 import { useQuery } from '@tanstack/react-query';
 
 import { MediaGallery } from '@/components/chat/media-gallery';
@@ -78,10 +79,18 @@ export function ConversationHeader({ conversationId }: ConversationHeaderProps) 
             </div>
           </SheetContent>
         </Sheet>
-        <Button variant="ghost" size="icon-sm" disabled>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => toast.info('Voice calls coming soon')}
+        >
           <Phone className="size-4" />
         </Button>
-        <Button variant="ghost" size="icon-sm" disabled>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => toast.info('Video calls coming soon')}
+        >
           <Video className="size-4" />
         </Button>
       </div>

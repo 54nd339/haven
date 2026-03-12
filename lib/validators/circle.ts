@@ -15,7 +15,3 @@ export const addCircleMemberSchema = z.object({
   circleId: z.string().uuid(),
   userId: z.string().uuid(),
 });
-
-export type CreateCircleInput = z.infer<typeof createCircleSchema>;
-export type UpdateCircleInput = z.infer<typeof updateCircleSchema>;
-export type AddCircleMemberInput = z.infer<typeof addCircleMemberSchema>;

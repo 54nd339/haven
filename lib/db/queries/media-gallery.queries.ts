@@ -1,4 +1,4 @@
-import { and, desc, eq, sql } from 'drizzle-orm';
+import { and, desc, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { messages, users } from '@/lib/db/schema';
@@ -23,7 +23,7 @@ export async function getConversationMedia(
 
   const conditions = [
     eq(messages.conversationId, conversationId),
-    sql`${messages.type} = ANY(${mediaTypes})`,
+    inArray(messages.type, mediaTypes),
     sql`${messages.mediaUrl} IS NOT NULL`,
     eq(messages.isDeletedForEveryone, false),
   ];

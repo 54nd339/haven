@@ -12,14 +12,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { addToList, removeFromList } from '@/lib/actions/list.actions';
+import type { ListMember } from '@/lib/db/queries/list.queries';
 import { useUserSearch } from '@/hooks/use-user-search';
-
-interface ListMember {
-  id: string;
-  username: string;
-  displayName: string | null;
-  avatarUrl: string | null;
-}
 
 interface ListDetailProps {
   listId: string;

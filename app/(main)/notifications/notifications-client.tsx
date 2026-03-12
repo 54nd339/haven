@@ -1,6 +1,7 @@
 'use client';
 
 import { CheckCheck } from 'lucide-react';
+import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { NotificationList } from '@/components/notifications';
@@ -19,6 +20,9 @@ export function NotificationsClient({ userId }: NotificationsClientProps) {
     mutationFn: markAllNotificationsRead,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
     },
   });
 

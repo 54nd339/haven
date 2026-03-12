@@ -11,7 +11,8 @@ import {
   Shield,
   UserPlus,
 } from 'lucide-react';
-import { useMutation } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { markNotificationRead } from '@/lib/actions/notification.actions';
@@ -45,12 +46,19 @@ function getNotificationHref(n: NotifItem): string {
 }
 
 export function NotificationItem({ notification }: NotificationItemProps) {
+  const queryClient = useQueryClient();
   const config = TYPE_CONFIG[notification.type] ?? TYPE_CONFIG.reaction!;
   const Icon = config.icon;
   const href = getNotificationHref(notification);
 
   const { mutate: markRead } = useMutation({
     mutationFn: () => markNotificationRead(notification.id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   return (

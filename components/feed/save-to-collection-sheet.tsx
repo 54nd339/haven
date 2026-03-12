@@ -9,14 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { saveToCollection } from '@/lib/actions/collection.actions';
+import type { CollectionWithCount } from '@/lib/db/queries/collection.queries';
 import { cn } from '@/lib/utils';
-
-interface Collection {
-  id: string;
-  name: string;
-  emoji: string | null;
-  isDefault: boolean;
-}
 
 interface SaveToCollectionSheetProps {
   postId: string;
@@ -28,7 +22,7 @@ export function SaveToCollectionSheet({ postId, open, onOpenChange }: SaveToColl
   const queryClient = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const { data: collections, isLoading } = useQuery<Collection[]>({
+  const { data: collections, isLoading } = useQuery<CollectionWithCount[]>({
     queryKey: ['collections'],
     queryFn: async () => {
       const res = await fetch('/api/collections');

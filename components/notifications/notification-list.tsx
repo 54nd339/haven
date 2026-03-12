@@ -6,7 +6,7 @@ import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 
 import { Skeleton } from '@/components/ui/skeleton';
 import type { NotificationItem as NotifItem } from '@/lib/db/queries/notification.queries';
-import { usePusherChannel } from '@/hooks/use-pusher-channel';
+import { useRealtimeChannel } from '@/hooks/use-realtime-channel';
 
 import { NotificationItem } from './notification-item';
 
@@ -53,7 +53,7 @@ export function NotificationList({ userId }: NotificationListProps) {
     queryClient.invalidateQueries({ queryKey: ['notifications'] });
   }, [queryClient]);
 
-  usePusherChannel(
+  useRealtimeChannel(
     userId ? `private-user-${userId}` : null,
     'new-notification',
     handleNewNotification,

@@ -16,6 +16,8 @@ export interface ProfileData {
   statusText: string | null;
   statusEmoji: string | null;
   isPrivate: boolean;
+  showReplies: boolean;
+  showReactions: boolean;
   createdAt: Date;
   followerCount: number;
   followingCount: number;
@@ -25,13 +27,13 @@ export interface ProfileData {
 
 export async function getProfileByUsername(
   username: string,
-  currentUserId: string,
+  currentUserId: string | null,
 ): Promise<ProfileData | null> {
   const [user] = await db.select().from(users).where(eq(users.username, username)).limit(1);
 
   if (!user) return null;
 
-  const isSelf = user.id === currentUserId;
+  const isSelf = currentUserId === user.id;
 
   const [followerCount, followingCount, postCount, followRelation] = await Promise.all([
     db
@@ -49,7 +51,7 @@ export async function getProfileByUsername(
       .from(posts)
       .where(and(eq(posts.authorId, user.id), eq(posts.isDraft, false), isNull(posts.scheduledAt)))
       .then((rows) => rows[0]?.count ?? 0),
-    isSelf
+    isSelf || !currentUserId
       ? Promise.resolve(null)
       : db
           .select({ status: follows.status })
@@ -79,6 +81,8 @@ export async function getProfileByUsername(
     statusText: user.statusText,
     statusEmoji: user.statusEmoji,
     isPrivate: user.isPrivate,
+    showReplies: user.showReplies,
+    showReactions: user.showReactions,
     createdAt: user.createdAt,
     followerCount,
     followingCount,
@@ -121,4 +125,39 @@ export async function getUserPosts(userId: string, cursor?: string, limit: numbe
   const nextCursor = hasMore ? postsSlice[postsSlice.length - 1]!.createdAt.toISOString() : null;
 
   return { posts: postsSlice, nextCursor };
+}
+
+export interface FollowUser {
+  id: string;
+  username: string;
+  displayName: string | null;
+  avatarUrl: string | null;
+}
+
+export async function getFollowers(userId: string): Promise<FollowUser[]> {
+  const rows = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(follows)
+    .innerJoin(users, eq(follows.followerId, users.id))
+    .where(and(eq(follows.followingId, userId), eq(follows.status, 'accepted')));
+  return rows;
+}
+
+export async function getFollowing(userId: string): Promise<FollowUser[]> {
+  const rows = await db
+    .select({
+      id: users.id,
+      username: users.username,
+      displayName: users.displayName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(follows)
+    .innerJoin(users, eq(follows.followingId, users.id))
+    .where(and(eq(follows.followerId, userId), eq(follows.status, 'accepted')));
+  return rows;
 }

@@ -3,13 +3,13 @@ import { desc, eq } from 'drizzle-orm';
 import { db } from '@/lib/db';
 import { postEditHistory, posts, users } from '@/lib/db/schema';
 
-export interface EditHistoryItem {
+interface EditHistoryItem {
   id: string;
   previousContent: string;
   editedAt: Date;
 }
 
-export interface PostWithHistory {
+interface PostWithHistory {
   id: string;
   content: string;
   isEdited: boolean;

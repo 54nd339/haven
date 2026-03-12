@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { CircleDashed, Plus, Trash2, Users } from 'lucide-react';
+import { CircleDashed, Edit2, Plus, Trash2, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 
@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
-import { createCircle, deleteCircle } from '@/lib/actions/circle.actions';
+import { createCircle, deleteCircle, updateCircle } from '@/lib/actions/circle.actions';
 import { useCircles } from '@/hooks/use-circles';
 
 function CircleSkeleton() {
@@ -33,6 +33,9 @@ export function CircleGrid() {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState('');
   const [emoji, setEmoji] = useState('');
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editEmoji, setEditEmoji] = useState('');
 
   const { data: circleList, isLoading } = useCircles();
 
@@ -45,6 +48,9 @@ export function CircleGrid() {
       queryClient.invalidateQueries({ queryKey: ['circles'] });
       toast.success('Circle created');
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   const { mutate: remove } = useMutation({
@@ -52,6 +58,19 @@ export function CircleGrid() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['circles'] });
       toast.success('Circle deleted');
+    },
+    onError: (err: Error) => toast.error(err.message),
+  });
+
+  const { mutate: update, isPending: isUpdating } = useMutation({
+    mutationFn: ({ circleId, name, emoji }: { circleId: string; name: string; emoji?: string }) =>
+      updateCircle({ circleId, name, emoji }),
+    onSuccess: () => {
+      setEditId(null);
+      setEditName('');
+      setEditEmoji('');
+      queryClient.invalidateQueries({ queryKey: ['circles'] });
+      toast.success('Circle updated');
     },
     onError: (err: Error) => toast.error(err.message),
   });
@@ -88,14 +107,32 @@ export function CircleGrid() {
               </p>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="relative z-10 opacity-0 group-hover:opacity-100"
-              onClick={() => remove(circle.id)}
-            >
-              <Trash2 className="text-destructive size-3.5" />
-            </Button>
+            <div className="relative z-10 flex items-center gap-1 opacity-0 group-hover:opacity-100">
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setEditId(circle.id);
+                  setEditName(circle.name);
+                  setEditEmoji(circle.emoji ?? '');
+                }}
+              >
+                <Edit2 className="size-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  remove(circle.id);
+                }}
+              >
+                <Trash2 className="text-destructive size-3.5" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
@@ -144,6 +181,52 @@ export function CircleGrid() {
             />
             <Button type="submit" disabled={!name.trim() || isCreating} className="w-full">
               Create
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditId(null);
+            setEditName('');
+            setEditEmoji('');
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Edit circle</DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (editId && editName.trim()) {
+                update({
+                  circleId: editId,
+                  name: editName.trim(),
+                  emoji: editEmoji || undefined,
+                });
+              }
+            }}
+            className="space-y-3"
+          >
+            <Input
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+              placeholder="Circle name"
+            />
+            <Input
+              value={editEmoji}
+              onChange={(e) => setEditEmoji(e.target.value)}
+              placeholder="Emoji (optional)"
+              maxLength={2}
+              className="w-20"
+            />
+            <Button type="submit" disabled={!editName.trim() || isUpdating} className="w-full">
+              Save
             </Button>
           </form>
         </DialogContent>

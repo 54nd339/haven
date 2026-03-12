@@ -62,6 +62,9 @@ export function CollectionGrid() {
       queryClient.invalidateQueries({ queryKey: ['collections'] });
       toast.success('Collection created');
     },
+    onError: (err) => {
+      toast.error(err instanceof Error ? err.message : 'Something went wrong');
+    },
   });
 
   const { mutate: remove } = useMutation({

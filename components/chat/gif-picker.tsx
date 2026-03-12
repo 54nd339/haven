@@ -31,7 +31,7 @@ export function GifPicker({ onSelect, children }: GifPickerProps) {
     const timeout = setTimeout(() => {
       setIsLoading(true);
       const params = query ? `?q=${encodeURIComponent(query)}` : '';
-      fetch(`/api/tenor${params}`)
+      fetch(`/api/gifs${params}`)
         .then((r) => r.json())
         .then((data) => setResults(data.results ?? []))
         .finally(() => setIsLoading(false));
@@ -95,7 +95,7 @@ export function GifPicker({ onSelect, children }: GifPickerProps) {
         </div>
 
         <div className="text-muted-foreground border-t px-2 py-1 text-center text-[9px]">
-          Powered by Tenor
+          Powered by KLIPY
         </div>
       </PopoverContent>
     </Popover>

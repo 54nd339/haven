@@ -57,6 +57,7 @@ export async function POST(req: Request) {
         email: data.email_addresses[0]?.email_address ?? '',
         avatarUrl: data.image_url,
       })
+      .onConflictDoNothing()
       .returning();
 
     if (newUser) {

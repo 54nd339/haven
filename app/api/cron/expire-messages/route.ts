@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { and, eq, sql } from 'drizzle-orm';
+import { and, eq, inArray, sql } from 'drizzle-orm';
 
 import { db } from '@/lib/db';
 import { messages } from '@/lib/db/schema';
@@ -28,7 +28,7 @@ export async function GET(req: Request) {
   await db
     .update(messages)
     .set({ isDeletedForEveryone: true, content: null, mediaUrl: null, deletedAt: new Date() })
-    .where(sql`${messages.id} = ANY(${ids})`);
+    .where(inArray(messages.id, ids));
 
   return NextResponse.json({ cleaned: ids.length });
 }

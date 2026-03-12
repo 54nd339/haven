@@ -33,6 +33,16 @@ export const createPostSchema = z.object({
     })
     .nullable()
     .optional(),
+  linkPreview: z
+    .object({
+      url: z.string().url(),
+      title: z.string().max(200).nullable().optional(),
+      description: z.string().max(500).nullable().optional(),
+      imageUrl: z.string().url().nullable().optional(),
+      siteName: z.string().max(100).nullable().optional(),
+    })
+    .nullable()
+    .optional(),
 });
 
 export const editPostSchema = z.object({
