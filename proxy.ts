@@ -8,6 +8,14 @@ const isPublicRoute = createRouteMatcher([
   '/api/uploadthing(.*)',
   '/api/embed(.*)',
   '/api/qr(.*)',
+  '/sitemap.xml',
+  '/robots.txt',
+  '/opengraph-image(.*)',
+  '/apple-icon(.*)',
+  '/explore',
+  '/post/(.*)',
+  '/hashtag/(.*)',
+  '/((?!settings|messages|notifications|drafts|collections|vault|wellbeing|activity|circles|lists|onboarding)[a-zA-Z0-9_-]+)',
 ]);
 
 const isOnboardingRoute = createRouteMatcher(['/onboarding(.*)']);

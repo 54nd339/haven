@@ -49,15 +49,14 @@ export default async function PostPage({ params }: PostPageProps) {
   const { id } = await params;
 
   const { userId: clerkId } = await auth();
-  if (!clerkId) return notFound();
+  const user = clerkId ? await getUserByClerkId(clerkId) : null;
 
-  const user = await getUserByClerkId(clerkId);
-  if (!user) return notFound();
-
-  const post = await getPostById(id, user.id);
+  const post = await getPostById(id, user?.id);
   if (!post) return notFound();
 
-  const comments = await getCommentsForPost(id, user.id);
+  if (post.visibility !== 'public' && !user) return notFound();
+
+  const comments = user ? await getCommentsForPost(id, user.id) : [];
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -70,11 +69,21 @@ export default async function PostPage({ params }: PostPageProps) {
         <h1 className="text-lg font-semibold">Post</h1>
       </div>
 
-      <PostDetailCard post={post} currentUserId={user.id} />
+      <PostDetailCard post={post} currentUserId={user?.id ?? null} />
       <Separator />
-      <div id="comments-section">
-        <CommentThread postId={id} initialComments={comments} />
-      </div>
+
+      {user ? (
+        <div id="comments-section">
+          <CommentThread postId={id} initialComments={comments} />
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+          <p className="text-muted-foreground text-sm">Sign in to join the conversation</p>
+          <Button asChild size="sm">
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

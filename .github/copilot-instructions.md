@@ -70,7 +70,14 @@ interface PostCardProps {
 }
 
 // Configuration literals
-const REACTION_TYPES = ['insightful', 'creative', 'supportive', 'funny', 'heartwarming', 'fire'] as const;
+const REACTION_TYPES = [
+  'insightful',
+  'creative',
+  'supportive',
+  'funny',
+  'heartwarming',
+  'fire',
+] as const;
 type ReactionType = (typeof REACTION_TYPES)[number];
 ```
 
@@ -108,23 +115,26 @@ Use CVA for component variants:
 ```typescript
 import { cva, type VariantProps } from 'class-variance-authority';
 
-const buttonVariants = cva('inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors', {
-  variants: {
-    variant: {
-      default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-      outline: 'border border-input bg-background hover:bg-accent',
+const buttonVariants = cva(
+  'inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors',
+  {
+    variants: {
+      variant: {
+        default: 'bg-primary text-primary-foreground hover:bg-primary/90',
+        outline: 'border border-input bg-background hover:bg-accent',
+      },
+      size: {
+        sm: 'h-8 px-3',
+        md: 'h-10 px-4',
+        lg: 'h-12 px-6',
+      },
     },
-    size: {
-      sm: 'h-8 px-3',
-      md: 'h-10 px-4',
-      lg: 'h-12 px-6',
+    defaultVariants: {
+      variant: 'default',
+      size: 'md',
     },
   },
-  defaultVariants: {
-    variant: 'default',
-    size: 'md',
-  },
-});
+);
 ```
 
 ## Zustand Stores
@@ -183,6 +193,7 @@ export const useZenModeStore = create<ZenModeState>()(
 ## Code Quality
 
 ### SOLID Principles
+
 - **S**: Each file/function has one reason to change.
 - **O**: Extend via composition (variants, slots, render props), not modification.
 - **L**: Component interfaces must be substitutable (consistent prop shapes).
@@ -190,16 +201,19 @@ export const useZenModeStore = create<ZenModeState>()(
 - **D**: Components depend on abstractions (hooks, stores), not concrete implementations.
 
 ### KISS
+
 - Prefer simple, obvious solutions over clever ones.
 - Flatten deeply nested logic with early returns and guard clauses.
 - Avoid premature abstraction. Duplicate twice before extracting.
 
 ### DRY
+
 - Extract only when duplication is proven (3+ occurrences).
 - Share logic via hooks and utility functions, not inheritance.
 - Shared validators in `lib/validators/` used by both client and server.
 
 ### Zero Tolerance
+
 - **Dead code**: Delete unused imports, functions, components, and variables immediately.
 - **Duplicate code**: Extract to shared utilities, hooks, or components on third occurrence.
 - **Magic numbers/strings**: Extract to constants.
@@ -222,11 +236,14 @@ export async function createPost(input: unknown) {
 
   const validated = createPostSchema.parse(input);
 
-  const [post] = await db.insert(posts).values({
-    authorId: userId,
-    content: validated.content,
-    visibility: validated.visibility,
-  }).returning();
+  const [post] = await db
+    .insert(posts)
+    .values({
+      authorId: userId,
+      content: validated.content,
+      visibility: validated.visibility,
+    })
+    .returning();
 
   revalidatePath('/');
   return post;

@@ -1,12 +1,16 @@
 {
+  "id": "/",
   "name": "Haven",
   "short_name": "Haven",
   "description": "A privacy-first, ad-free social platform for genuine connection.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#09090b",
   "theme_color": "#7c3aed",
   "orientation": "portrait-primary",
+  "categories": ["social", "lifestyle"],
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-192.svg",
@@ -19,6 +23,23 @@
       "sizes": "512x512",
       "type": "image/svg+xml",
       "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Explore",
+      "url": "/explore",
+      "description": "Discover trending posts and people"
+    },
+    {
+      "name": "Messages",
+      "url": "/messages",
+      "description": "View your conversations"
+    },
+    {
+      "name": "Notifications",
+      "url": "/notifications",
+      "description": "Check your notifications"
     }
   ]
 }

@@ -78,7 +78,7 @@ interface PostDetailCardProps {
     reactionCounts: Record<string, number>;
     userReaction: string | null;
   };
-  currentUserId: string;
+  currentUserId: string | null;
 }
 
 export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
@@ -87,7 +87,7 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
   const [optimisticBookmarked, setOptimisticBookmarked] = useState<boolean | null>(null);
   const [editOpen, setEditOpen] = useState(false);
 
-  const isAuthor = post.author.id === currentUserId;
+  const isAuthor = !!currentUserId && post.author.id === currentUserId;
   const isBookmarked = optimisticBookmarked ?? false;
 
   const { mutate: handleBookmark } = useMutation({
@@ -148,41 +148,43 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
               </Link>
             </div>
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon-sm">
-                  <MoreHorizontal className="size-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={() => handleBookmark()}>
-                  <Bookmark className="size-4" />
-                  Save
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onClick={() => {
-                    navigator.clipboard.writeText(window.location.href);
-                    toast.success('Link copied');
-                  }}
-                >
-                  <Share2 className="size-4" />
-                  Copy link
-                </DropdownMenuItem>
-                {isAuthor && (
-                  <>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => setEditOpen(true)}>
-                      <Edit3 className="size-4" />
-                      Edit
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="text-destructive" onClick={() => handleDelete()}>
-                      <Trash2 className="size-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {currentUserId ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon-sm">
+                    <MoreHorizontal className="size-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => handleBookmark()}>
+                    <Bookmark className="size-4" />
+                    Save
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => {
+                      navigator.clipboard.writeText(window.location.href);
+                      toast.success('Link copied');
+                    }}
+                  >
+                    <Share2 className="size-4" />
+                    Copy link
+                  </DropdownMenuItem>
+                  {isAuthor && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => setEditOpen(true)}>
+                        <Edit3 className="size-4" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="text-destructive" onClick={() => handleDelete()}>
+                        <Trash2 className="size-4" />
+                        Delete
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
 
           {post.collabUser && (
@@ -237,12 +239,14 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
       <Separator className="my-3" />
 
       <div className="flex items-center gap-1">
-        <ReactionBar
-          entityId={post.id}
-          entityType="post"
-          reactionCounts={post.reactionCounts}
-          userReaction={post.userReaction}
-        />
+        {currentUserId && (
+          <ReactionBar
+            entityId={post.id}
+            entityType="post"
+            reactionCounts={post.reactionCounts}
+            userReaction={post.userReaction}
+          />
+        )}
 
         <Button
           variant="ghost"
@@ -268,22 +272,26 @@ export function PostDetailCard({ post, currentUserId }: PostDetailCardProps) {
 
         <div className="flex-1" />
 
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          className={cn('text-muted-foreground', isBookmarked && 'text-primary')}
-          onClick={() => handleBookmark()}
-        >
-          <Bookmark className={cn('size-4', isBookmarked && 'fill-current')} />
-        </Button>
+        {currentUserId && (
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className={cn('text-muted-foreground', isBookmarked && 'text-primary')}
+            onClick={() => handleBookmark()}
+          >
+            <Bookmark className={cn('size-4', isBookmarked && 'fill-current')} />
+          </Button>
+        )}
       </div>
 
-      <EditPostDialog
-        postId={post.id}
-        initialContent={post.content}
-        open={editOpen}
-        onOpenChange={setEditOpen}
-      />
+      {currentUserId && (
+        <EditPostDialog
+          postId={post.id}
+          initialContent={post.content}
+          open={editOpen}
+          onOpenChange={setEditOpen}
+        />
+      )}
     </article>
   );
 }

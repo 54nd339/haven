@@ -55,15 +55,12 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
   const { username } = await params;
 
   const { userId: clerkId } = await auth();
-  if (!clerkId) return notFound();
+  const currentUser = clerkId ? await getUserByClerkId(clerkId) : null;
 
-  const currentUser = await getUserByClerkId(clerkId);
-  if (!currentUser) return notFound();
-
-  const profile = await getProfileByUsername(username, currentUser.id);
+  const profile = await getProfileByUsername(username, currentUser?.id ?? null);
   if (!profile) return notFound();
 
-  const isSelf = profile.followStatus === 'self';
+  const isSelf = !!currentUser && profile.followStatus === 'self';
 
   const [pinnedPostsList, badges, highlights] = await Promise.all([
     getPinnedPosts(profile.id),
@@ -92,7 +89,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
         </QRCodeDialog>
       </div>
 
-      {!isSelf && <RecordView viewedUserId={profile.id} />}
+      {currentUser && !isSelf && <RecordView viewedUserId={profile.id} />}
       <ProfileHeader profile={profile} />
       {isSelf && (
         <div className="px-4 pb-2">
@@ -103,22 +100,36 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
       <BadgeList badges={badges} />
       <StoryHighlights highlights={highlights} isSelf={isSelf} />
       <Separator />
-      <ProfileTabs
-        username={profile.username}
-        isSelf={isSelf}
-        showReplies={profile.showReplies}
-        showReactions={profile.showReactions}
-      >
-        <ProfilePosts username={profile.username} />
-      </ProfileTabs>
-      {isSelf && (
+
+      {currentUser ? (
         <>
-          <Separator />
-          <div>
-            <h2 className="text-muted-foreground px-4 py-3 text-sm font-medium">Profile viewers</h2>
-            <ProfileViewers />
-          </div>
+          <ProfileTabs
+            username={profile.username}
+            isSelf={isSelf}
+            showReplies={profile.showReplies}
+            showReactions={profile.showReactions}
+          >
+            <ProfilePosts username={profile.username} />
+          </ProfileTabs>
+          {isSelf && (
+            <>
+              <Separator />
+              <div>
+                <h2 className="text-muted-foreground px-4 py-3 text-sm font-medium">
+                  Profile viewers
+                </h2>
+                <ProfileViewers />
+              </div>
+            </>
+          )}
         </>
+      ) : (
+        <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
+          <p className="text-muted-foreground text-sm">Sign in to see posts and interact</p>
+          <Button asChild size="sm">
+            <Link href="/sign-in">Sign in</Link>
+          </Button>
+        </div>
       )}
     </div>
   );
